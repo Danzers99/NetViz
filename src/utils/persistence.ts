@@ -168,7 +168,30 @@ export const validateAndSanitizeConfig = (data: ConfigData): { valid: boolean; e
                     continue;
                 }
 
-                // Verify target port reciprocity logic could go here, but simulation usually self-heals or we can leave it.
+                // Sanitization 2: Strict Power/Data Separation
+                // We need to look up the connected port to check its role.
+                let targetPort = null;
+                for (const potentialDev of data.devices) {
+                    const found = potentialDev.ports.find(tp => tp.id === p.connectedTo);
+                    if (found) {
+                        targetPort = found;
+                        break;
+                    }
+                }
+
+                if (targetPort) {
+                    const isPower = (role: string) => role === 'power_input' || role === 'power_source';
+                    const isData = (role: string) => !isPower(role);
+
+                    if ((isPower(p.role) && isData(targetPort.role)) || (isData(p.role) && isPower(targetPort.role))) {
+                        console.warn(`Removing invalid connection between Power (${p.role}) and Data (${targetPort.role}) ports.`);
+                        p.connectedTo = null;
+                        p.linkStatus = 'down';
+                        // Reciprocity will be handled when we process the other port, or connection state update.
+                        // But best to clear here.
+                        continue;
+                    }
+                }
             }
         }
     }

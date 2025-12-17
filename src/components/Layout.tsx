@@ -5,6 +5,7 @@ import { Alerts } from './Alerts';
 import { SettingsPanel } from './SettingsPanel';
 import { DeviceProperties } from './DeviceProperties';
 import { RuntimeNotifications } from './RuntimeNotifications';
+import { Toast } from './Toast';
 import { useEffect } from 'react';
 
 
@@ -70,7 +71,7 @@ export const Layout = ({ children }: { children: ReactNode }) => {
                 <RuntimeNotifications />
             </div>
 
-
+            <Toast />
 
             {showSettings && <SettingsPanel onClose={() => setShowSettings(false)} />}
 

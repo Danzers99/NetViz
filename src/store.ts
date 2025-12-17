@@ -41,6 +41,10 @@ interface AppState {
     // Save/Load
     exportConfig: () => ConfigData;
     importConfig: (data: ConfigData) => void;
+
+    // Notifications
+    notification: { message: string; type: 'error' | 'success' | 'info' } | null;
+    setNotification: (notification: { message: string; type: 'error' | 'success' | 'info' } | null) => void;
 }
 
 const generatePorts = (type: DeviceType, deviceId: string): Port[] => {
@@ -143,6 +147,9 @@ export const useAppStore = create<AppState>((set, get) => ({
     selectedDeviceId: null,
     isDraggingDevice: false,
     validationErrors: [],
+
+    notification: null,
+    setNotification: (notification) => set({ notification }),
 
     hoveredElement: null,
     highlightedPorts: new Set(),
@@ -273,6 +280,31 @@ export const useAppStore = create<AppState>((set, get) => ({
 
             if (!portA || !portB || !deviceA || !deviceB) {
                 return { devices };
+            }
+
+            // Connection Validation Logic
+            const isPowerPort = (role: string) => role === 'power_input' || role === 'power_source';
+            const isDataPort = (role: string) => !isPowerPort(role);
+
+            const roleA = portA.role;
+            const roleB = portB.role;
+
+            // 1. Strict Power Strip Validation (Requirement)
+            // If one is power and the other is data, BLOCK.
+            if ((isPowerPort(roleA) && isDataPort(roleB)) || (isDataPort(roleA) && isPowerPort(roleB))) {
+                // Determine specific message
+                let msg = "Cannot connect Power cable to Data port.";
+
+                // Specific message for Power Strip
+                if (deviceA.type === 'power-outlet' || deviceB.type === 'power-outlet') {
+                    msg = "Power Strip only accepts power connections.";
+                }
+
+                set({ notification: { message: msg, type: 'error' } });
+
+                // Auto-clear after 3s (or handle in component, but setting here ensures state update)
+                // Actually component handles clearing usually, but we need to set it.
+                return { devices }; // Return early, do not connect
             }
 
             // Disconnect existing connections
