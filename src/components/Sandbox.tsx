@@ -4,6 +4,7 @@ import { OrbitControls, Grid, Environment } from '@react-three/drei';
 import { useAppStore } from '../store';
 import { DeviceNode } from './DeviceNode';
 import { Cables } from './Cables';
+import { SelectedPortIndicator } from './SelectedPortIndicator';
 import { Toolbox } from './Toolbox';
 
 export const Sandbox = () => {
@@ -54,6 +55,10 @@ export const Sandbox = () => {
                     <li>• Click ports to connect them</li>
                     <li>• Right Click ports to disconnect</li>
                 </ul>
+            </div>
+
+            <div className="absolute top-4 left-1/2 -translate-x-1/2 z-10 pointer-events-none">
+                <SelectedPortIndicator />
             </div>
 
             <Toolbox />

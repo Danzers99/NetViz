@@ -583,6 +583,7 @@ export const useAppStore = create<AppState>((set, get) => ({
                 devices,
                 validationErrors: errors,
                 selectedDeviceId: state.selectedDeviceId === deviceId ? null : state.selectedDeviceId,
+                selectedPortId: (state.selectedPortId && removingPortIds.has(state.selectedPortId)) ? null : state.selectedPortId,
             };
         }),
     exportConfig: () => {

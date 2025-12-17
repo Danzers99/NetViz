@@ -65,11 +65,7 @@ export const Layout = ({ children }: { children: ReactNode }) => {
 
     return (
         <div className="flex h-screen bg-slate-50 dark:bg-slate-900 text-slate-900 dark:text-slate-100 font-sans relative overflow-hidden">
-            {/* Top Right HUD Container */}
-            <div className="absolute top-4 right-4 z-50 flex flex-col gap-2 items-end pointer-events-none">
-                <Alerts />
-                <RuntimeNotifications />
-            </div>
+
 
             <Toast />
 
@@ -144,7 +140,11 @@ export const Layout = ({ children }: { children: ReactNode }) => {
 
             {/* Main Content */}
             <main className="flex-1 overflow-hidden relative bg-slate-50 dark:bg-slate-900">
-
+                {/* Top Left - Alerts & Notifications */}
+                <div className="absolute top-4 left-4 z-50 flex flex-col gap-2 items-start pointer-events-none max-w-md w-full">
+                    <Alerts />
+                    <RuntimeNotifications />
+                </div>
                 {children}
             </main>
 

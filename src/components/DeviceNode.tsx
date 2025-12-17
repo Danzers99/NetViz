@@ -53,6 +53,8 @@ import { DeviceActionMenu } from './DeviceActionMenu';
 export const DeviceNode = ({ device }: { device: Device }) => {
     const updateDevicePosition = useAppStore((state) => state.updateDevicePosition);
     const setDraggingDevice = useAppStore((state) => state.setDraggingDevice);
+    const selectPort = useAppStore((state) => state.selectPort);
+    const selectDevice = useAppStore((state) => state.selectDevice);
     const [isDragging, setIsDragging] = useState(false);
     const [showMenu, setShowMenu] = useState(false);
     const planeRef = useRef(new THREE.Plane(new THREE.Vector3(0, 1, 0), 0));
@@ -94,6 +96,11 @@ export const DeviceNode = ({ device }: { device: Device }) => {
                 onPointerDown={handlePointerDown}
                 onPointerUp={handlePointerUp}
                 onPointerMove={handlePointerMove}
+                onClick={(e) => {
+                    e.stopPropagation();
+                    selectDevice(device.id);
+                    selectPort(null);
+                }}
                 onPointerOver={() => { document.body.style.cursor = 'grab'; }}
                 onPointerOut={() => { document.body.style.cursor = 'auto'; }}
                 onContextMenu={(e) => {
