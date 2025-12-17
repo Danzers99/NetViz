@@ -152,6 +152,7 @@ const WifiHostMenu = ({ device, onClose, onBack }: { device: Device, onClose: ()
 export const DeviceActionMenu = ({ device, onClose }: DeviceActionMenuProps) => {
     const triggerAction = useAppStore((state) => state.triggerAction);
     const removeDevice = useAppStore((state) => state.removeDevice);
+    const setPropertiesPanelDeviceId = useAppStore((state) => state.setPropertiesPanelDeviceId);
 
     const [view, setView] = useState<MenuState>('main');
 
@@ -208,6 +209,18 @@ export const DeviceActionMenu = ({ device, onClose }: DeviceActionMenuProps) => 
                 <div className="px-3 py-2 bg-slate-50 dark:bg-slate-900 border-b border-slate-100 dark:border-slate-700 font-bold text-xs text-slate-500 dark:text-slate-400 uppercase tracking-wider">
                     {device.name}
                 </div>
+
+                <button
+                    onClick={() => {
+                        setPropertiesPanelDeviceId(device.id);
+                        onClose();
+                    }}
+                    className="px-3 py-2 text-left hover:bg-slate-100 dark:hover:bg-slate-700 transition-colors flex items-center gap-2 text-slate-700 dark:text-slate-200"
+                >
+                    <Settings size={14} />
+                    Properties
+                </button>
+                <div className="border-t border-slate-100 dark:border-slate-700 my-1"></div>
 
                 {isWirelessClient && (
                     <button

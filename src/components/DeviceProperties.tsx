@@ -2,12 +2,12 @@ import { X } from 'lucide-react';
 import { useAppStore } from '../store';
 
 export const DeviceProperties = () => {
-    const selectedDeviceId = useAppStore((state) => state.selectedDeviceId);
-    const selectDevice = useAppStore((state) => state.selectDevice);
+    const propertiesPanelDeviceId = useAppStore((state) => state.propertiesPanelDeviceId);
+    const setPropertiesPanelDeviceId = useAppStore((state) => state.setPropertiesPanelDeviceId);
     const updateDevice = useAppStore((state) => state.updateDevice);
     const devices = useAppStore((state) => state.devices);
 
-    const device = devices.find(d => d.id === selectedDeviceId);
+    const device = devices.find(d => d.id === propertiesPanelDeviceId);
 
     if (!device) return null;
 
@@ -19,7 +19,7 @@ export const DeviceProperties = () => {
                     <span className="text-xs text-slate-500 dark:text-slate-400 font-mono">{device.type}</span>
                 </div>
                 <button
-                    onClick={() => selectDevice(null)}
+                    onClick={() => setPropertiesPanelDeviceId(null)}
                     className="p-2 hover:bg-slate-200 dark:hover:bg-slate-700 rounded-full transition-colors text-slate-500 dark:text-slate-400"
                 >
                     <X size={20} />

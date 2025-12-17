@@ -59,6 +59,12 @@ class ErrorBoundary extends React.Component<{ children: React.ReactNode }, { has
   }
 }
 
+import { validatePorts } from './utils/debug';
+
+// Expose validation for dev console
+// @ts-ignore
+window.validatePorts = validatePorts;
+
 createRoot(document.getElementById('root')!).render(
   <StrictMode>
     <ErrorBoundary>

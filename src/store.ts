@@ -12,6 +12,7 @@ interface AppState {
     devices: Device[];
     selectedPortId: string | null;
     selectedDeviceId: string | null;
+    propertiesPanelDeviceId: string | null;
     isDraggingDevice: boolean;
     validationErrors: ValidationError[];
 
@@ -24,6 +25,7 @@ interface AppState {
     disconnectPort: (portId: string) => void;
     selectPort: (portId: string | null) => void;
     selectDevice: (deviceId: string | null) => void;
+    setPropertiesPanelDeviceId: (deviceId: string | null) => void;
     setDraggingDevice: (dragging: boolean) => void;
     reset: () => void;
 
@@ -47,7 +49,7 @@ interface AppState {
     setNotification: (notification: { message: string; type: 'error' | 'success' | 'info' } | null) => void;
 }
 
-const generatePorts = (type: DeviceType, deviceId: string): Port[] => {
+export const generatePorts = (type: DeviceType, deviceId: string): Port[] => {
     const ports: Port[] = [];
 
     switch (type) {
@@ -145,6 +147,7 @@ export const useAppStore = create<AppState>((set, get) => ({
     devices: [],
     selectedPortId: null,
     selectedDeviceId: null,
+    propertiesPanelDeviceId: null,
     isDraggingDevice: false,
     validationErrors: [],
 
@@ -453,11 +456,14 @@ export const useAppStore = create<AppState>((set, get) => ({
         });
     },
 
+    setPropertiesPanelDeviceId: (id: string | null) => set({ propertiesPanelDeviceId: id }),
+
     reset: () => set({
         step: 'wizard',
         devices: [],
         selectedPortId: null,
         selectedDeviceId: null,
+        propertiesPanelDeviceId: null,
         validationErrors: [],
         hoveredElement: null,
         highlightedPorts: new Set(),
@@ -624,6 +630,7 @@ export const useAppStore = create<AppState>((set, get) => ({
                 validationErrors: errors,
                 selectedPortId: null,
                 selectedDeviceId: null,
+                propertiesPanelDeviceId: null,
             });
         } catch (error) {
             console.error('Unexpected error loading config:', error);

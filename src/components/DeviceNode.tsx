@@ -108,10 +108,7 @@ export const DeviceNode = ({ device }: { device: Device }) => {
                     setShowMenu(true);
                 }}
             >
-                {/* Visual Hit Area for easier clicking of small objects */}
-                <mesh visible={false}>
-                    <boxGeometry args={[1, 1, 1]} />
-                </mesh>
+
 
                 {(() => {
                     const status = device.status;
