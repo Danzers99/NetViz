@@ -6,6 +6,7 @@ import { DeviceNode } from './DeviceNode';
 import { Cables } from './Cables';
 
 import { Toolbox } from './Toolbox';
+import { WasdControls } from './WasdControls';
 
 export const Sandbox = () => {
     const devices = useAppStore((state) => state.devices);
@@ -35,6 +36,7 @@ export const Sandbox = () => {
                         cellSize={1}
                     />
                     <OrbitControls ref={controlsRef} makeDefault />
+                    <WasdControls />
                     <Environment preset="city" />
 
                     <Cables />
@@ -48,6 +50,7 @@ export const Sandbox = () => {
             <div className="absolute bottom-4 left-4 bg-white/90 dark:bg-slate-800/80 p-4 rounded-lg text-slate-700 dark:text-white backdrop-blur-sm border border-slate-200 dark:border-slate-700 pointer-events-none select-none transition-colors duration-300">
                 <h3 className="font-bold mb-2 text-orange-500 dark:text-orange-400">Controls</h3>
                 <ul className="text-sm space-y-1 text-slate-600 dark:text-slate-300">
+                    <li>• WASD to Move Camera</li>
                     <li>• Left Click + Drag to Rotate</li>
                     <li>• Right Click + Drag to Pan</li>
                     <li>• Scroll to Zoom</li>
