@@ -161,6 +161,7 @@ export const Layout = ({ children }: { children: ReactNode }) => {
             </main>
 
             <input
+                id="config-input"
                 type="file"
                 ref={fileInputRef}
                 onChange={handleFileChange}

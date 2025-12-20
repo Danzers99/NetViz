@@ -1,6 +1,6 @@
 import { useAppStore } from './store';
 import { Layout } from './components/Layout';
-import { Wizard } from './components/Wizard';
+import { WizardContainer } from './components/wizard/WizardContainer';
 import { Sandbox } from './components/Sandbox';
 
 function App() {
@@ -8,7 +8,7 @@ function App() {
 
   return (
     <Layout>
-      {step === 'wizard' ? <Wizard /> : <Sandbox />}
+      {step === 'wizard' ? <WizardContainer /> : <Sandbox />}
     </Layout>
   );
 }
