@@ -54,7 +54,7 @@ export const checkPowerSource = (device: Device, allDevices: Device[]): boolean 
         // Check if device is a specialized PoE Source (Injector) OR Switch with capabilities
         const isPoESource =
             upstreamPort.role === 'poe_source' ||
-            (upstreamDef.capabilities.poeSource && upstreamPort.role === 'generic');
+            (upstreamDef.capabilities.poeSource === true && upstreamPort.role === 'generic');
 
         return isPoESource;
     }
