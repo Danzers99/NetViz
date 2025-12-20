@@ -151,7 +151,7 @@ export const Layout = ({ children }: { children: ReactNode }) => {
 
                     {/* Center/Right (moves to new row on mobile): Selected Port Indicator */}
                     <div className="flex-1 flex justify-center sm:justify-center">
-                        <SelectedPortIndicator />
+                        {step === 'sandbox' && <SelectedPortIndicator />}
                     </div>
 
                     {/* Spacer for symmetry if needed, or just let flex handle it */}

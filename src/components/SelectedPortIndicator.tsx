@@ -5,6 +5,9 @@ export const SelectedPortIndicator = () => {
     const selectedPortId = useAppStore((state) => state.selectedPortId);
     const devices = useAppStore((state) => state.devices);
     const selectPort = useAppStore((state) => state.selectPort);
+    const step = useAppStore((state) => state.step);
+
+    if (step !== 'sandbox') return null;
 
     // Enable Esc to clear selection
     useEffect(() => {
