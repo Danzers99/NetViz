@@ -35,7 +35,7 @@ export const saveSettingsToStorage = (settings: Settings) => {
     }
 };
 
-export const CURRENT_SCHEMA_VERSION = 2; // Incremented from implicit 1
+export const CURRENT_SCHEMA_VERSION = 3; // Incremented for Project Info
 
 // Internal interface for legacy settings if needed, or just allow 'any'
 
@@ -61,12 +61,28 @@ export const migrateConfig = (data: LegacyConfigData): ConfigData => {
     if (migrated.schemaVersion < 2) {
         migrated = migrateV1toV2(migrated);
     }
-
-    // Add future migrations here:
-    // if (migrated.schemaVersion < 3) { migrated = migrateV2toV3(migrated); }
+    if (migrated.schemaVersion < 3) {
+        migrated = migrateV2toV3(migrated);
+    }
 
     // Ensure final structure matches current types
     return migrated as ConfigData;
+};
+
+const migrateV2toV3 = (data: any): any => {
+    console.log('Migrating save from v2 to v3 (Adding Project Info)...');
+
+    // Add projectInfo if missing
+    if (!data.projectInfo) {
+        data.projectInfo = {
+            name: "Untitled Location",
+            createdAt: new Date().toISOString(),
+            updatedAt: new Date().toISOString()
+        };
+    }
+
+    data.schemaVersion = 3;
+    return data;
 };
 
 const migrateV1toV2 = (data: any): any => {

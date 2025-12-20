@@ -132,6 +132,10 @@ export const StepReview = ({ data, onBack, onCreate }: StepReviewProps) => {
                         <div className="mt-4 pt-4 border-t border-orange-200 dark:border-orange-800/30 text-xs text-orange-800 dark:text-orange-300">
                             <p>• Switches added based on 8-port capacity needs.</p>
                             <p>• Outlets added for power distribution (4 plugs per outlet).</p>
+
+                            <div className="mt-3 p-3 bg-white/60 dark:bg-slate-800/40 border border-orange-200 dark:border-orange-800/50 rounded-lg">
+                                <strong>Note:</strong> The ISP modem represents your internet provider. In NetViz it is assumed to always be powered on and online, so you can focus on your local network setup.
+                            </div>
                         </div>
                     </div>
                 </div>

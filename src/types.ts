@@ -84,10 +84,17 @@ export interface Settings {
 
 
 
+export interface ProjectInfo {
+    name: string;
+    createdAt?: string;
+    updatedAt?: string;
+}
+
 export interface ConfigData {
     version: number; // Legacy version field, kept for history
     schemaVersion?: number; // New schema version for migrations
     timestamp: number;
+    projectInfo: ProjectInfo; // Added for V1.5.0
     settings: Settings;
     deviceCounts: Record<DeviceType, number>;
     devices: Device[];

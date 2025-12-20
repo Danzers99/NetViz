@@ -2,12 +2,13 @@ import { create } from 'zustand';
 import { validateNetwork } from './validation';
 import { propagatePowerState, updateLinkStatuses, updateConnectionStates } from './utils/simulation';
 import type { ValidationError } from './validation';
-import type { Device, DeviceType, Port, Settings, DeviceAction, ConfigData } from './types';
+import type { Device, DeviceType, Port, Settings, DeviceAction, ConfigData, ProjectInfo } from './types';
 import { migrateConfig, validateAndSanitizeConfig, CURRENT_SCHEMA_VERSION, loadSettingsFromStorage, saveSettingsToStorage } from './utils/persistence';
 
 interface AppState {
     step: 'wizard' | 'sandbox';
     settings: Settings;
+    projectInfo: ProjectInfo; // Current project metadata
     deviceCounts: Record<DeviceType, number>;
     devices: Device[];
     selectedPortId: string | null;
@@ -17,6 +18,7 @@ interface AppState {
     validationErrors: ValidationError[];
 
     setDeviceCount: (type: DeviceType, count: number) => void;
+    setProjectInfo: (info: Partial<ProjectInfo>) => void;
     updateSettings: (settings: Partial<Settings>) => void;
     generateSandbox: () => void;
     updateDevicePosition: (id: string, position: [number, number, number]) => void;
@@ -119,6 +121,10 @@ export const generatePorts = (type: DeviceType, deviceId: string): Port[] => {
 export const useAppStore = create<AppState>((set, get) => ({
     step: 'wizard',
     settings: loadSettingsFromStorage(),
+    projectInfo: {
+        name: 'New Project',
+        createdAt: new Date().toISOString()
+    },
     deviceCounts: {
         'isp-modem': 1,
         'zyxel-router': 1,
@@ -161,6 +167,10 @@ export const useAppStore = create<AppState>((set, get) => ({
     setDeviceCount: (type, count) =>
         set((state) => ({
             deviceCounts: { ...state.deviceCounts, [type]: count },
+        })),
+    setProjectInfo: (info) =>
+        set((state) => ({
+            projectInfo: { ...state.projectInfo, ...info }
         })),
     updateSettings: (newSettings) =>
         set((state) => {
@@ -468,7 +478,11 @@ export const useAppStore = create<AppState>((set, get) => ({
         hoveredElement: null,
         highlightedPorts: new Set(),
         highlightedCables: new Set(),
-        highlightedDevices: new Set()
+        highlightedDevices: new Set(),
+        projectInfo: { // Reset project info default
+            name: 'New Project',
+            createdAt: new Date().toISOString()
+        }
     }),
 
     triggerAction: (deviceId, action) => {
@@ -593,7 +607,7 @@ export const useAppStore = create<AppState>((set, get) => ({
             };
         }),
     exportConfig: () => {
-        const { settings, deviceCounts, devices } = get();
+        const { settings, deviceCounts, devices, projectInfo } = get();
         return {
             version: CURRENT_SCHEMA_VERSION, // Use schema version
             schemaVersion: CURRENT_SCHEMA_VERSION,
@@ -601,6 +615,10 @@ export const useAppStore = create<AppState>((set, get) => ({
             settings,
             deviceCounts,
             devices,
+            projectInfo: {
+                ...projectInfo,
+                updatedAt: new Date().toISOString()
+            }
         };
     },
     importConfig: (data: ConfigData) => {
@@ -626,6 +644,7 @@ export const useAppStore = create<AppState>((set, get) => ({
                 settings: cleanData.settings,
                 deviceCounts: cleanData.deviceCounts,
                 devices: cleanData.devices,
+                projectInfo: cleanData.projectInfo, // Load project info
                 step: 'sandbox',
                 validationErrors: errors,
                 selectedPortId: null,

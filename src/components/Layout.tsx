@@ -22,11 +22,20 @@ export const Layout = ({ children }: { children: ReactNode }) => {
 
     const handleSave = () => {
         const config = exportConfig();
+        const projectName = config.projectInfo.name || "Untitled_Location";
+        const sanitizedName = projectName.replace(/[^a-zA-Z0-9-_]/g, '_').substring(0, 40);
+        const dateStr = new Date().toISOString().slice(0, 10);
+        // Add time HHmm for uniqueness if needed, but per requirements: NetViz_<LocationName>_<YYYY-MM-DD>_<HHmm>
+        const now = new Date();
+        const timeStr = `${now.getHours().toString().padStart(2, '0')}${now.getMinutes().toString().padStart(2, '0')}`;
+
+        const filename = `NetViz_${sanitizedName}_${dateStr}_${timeStr}.json`;
+
         const blob = new Blob([JSON.stringify(config, null, 2)], { type: 'application/json' });
         const url = URL.createObjectURL(blob);
         const a = document.createElement('a');
         a.href = url;
-        a.download = `netviz-config-${new Date().toISOString().slice(0, 10)}.json`;
+        a.download = filename;
         document.body.appendChild(a);
         a.click();
         document.body.removeChild(a);

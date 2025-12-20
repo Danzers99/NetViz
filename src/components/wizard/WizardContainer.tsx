@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { useAppStore } from '../../store';
 import { initialWizardState, type WizardState, buildSandboxConfigFromWizard } from '../../utils/wizardLogic';
 import { StepWelcome } from './StepWelcome';
+import { StepLocation } from './StepLocation';
 import { StepPOS } from './StepPOS';
 import { StepPrinters } from './StepPrinters';
 import { StepWireless } from './StepWireless';
@@ -11,13 +12,19 @@ import { StepReview } from './StepReview';
 
 export const WizardContainer = () => {
     // Component State
+    // Component State
     const [currentStep, setCurrentStep] = useState<number>(0);
-    const [wizardData, setWizardData] = useState<WizardState>(initialWizardState);
+    // Deep clone initial state to ensure no mutation issues across resets
+    const [wizardData, setWizardData] = useState<WizardState>(JSON.parse(JSON.stringify(initialWizardState)));
 
     // Store Actions
-
     const generateSandbox = useAppStore((state) => state.generateSandbox);
     const setDeviceCountStore = useAppStore((state) => state.setDeviceCount);
+    const setProjectInfoStore = useAppStore((state) => state.setProjectInfo);
+
+    // Force step 0 on mount/reset
+    // useEffect(() => setCurrentStep(0), []); // Strict mode might double invoke, but 0 is safe.
+
 
     // Access Layout refs/actions for file input if needed? 
     // Actually, the Layout component handles the file input rendering and change event.
@@ -35,10 +42,16 @@ export const WizardContainer = () => {
     };
 
     const handleCreateSandbox = () => {
-        // 1. Convert wizard state to proper device counts
+        // 1. Set Project Info
+        setProjectInfoStore({
+            name: wizardData.projectInfo.name,
+            createdAt: new Date().toISOString()
+        });
+
+        // 2. Convert wizard state to proper device counts
         const configCounts = buildSandboxConfigFromWizard(wizardData);
 
-        // 2. Update the store with these counts
+        // 3. Update the store with these counts
         // We need to iterate and set each count, or simpler: modify store to accept bulk update?
         // store `setDeviceCount` is one by one. 
         // Iterate:
@@ -47,7 +60,7 @@ export const WizardContainer = () => {
             setDeviceCountStore(type, count);
         });
 
-        // 3. Trigger generate
+        // 4. Trigger generate
         generateSandbox();
     };
 
@@ -61,41 +74,55 @@ export const WizardContainer = () => {
     const steps = [
         // 0: Welcome
         <StepWelcome
+            key="welcome"
             onStartNew={() => setCurrentStep(1)}
             onLoadPrevious={handleLoadClick}
         />,
-        // 1: POS
-        <StepPOS
-            data={wizardData.pos}
-            updateData={(u) => updateWizardData('pos', u)}
+        // 1: Location Name
+        <StepLocation
+            key="location"
+            projectName={wizardData.projectInfo.name}
+            updateProjectName={(name) => updateWizardData('projectInfo', { name })}
             onBack={() => setCurrentStep(0)}
             onNext={() => setCurrentStep(2)}
         />,
-        // 2: Printers
-        <StepPrinters
-            data={wizardData.printers}
-            updateData={(u) => updateWizardData('printers', u)}
+        // 2: POS
+        <StepPOS
+            key="pos"
+            data={wizardData.pos}
+            updateData={(u) => updateWizardData('pos', u)}
             onBack={() => setCurrentStep(1)}
             onNext={() => setCurrentStep(3)}
         />,
-        // 3: Wireless
-        <StepWireless
-            data={wizardData.wireless}
-            updateData={(u) => updateWizardData('wireless', u)}
+        // 3: Printers
+        <StepPrinters
+            key="printers"
+            data={wizardData.printers}
+            updateData={(u) => updateWizardData('printers', u)}
             onBack={() => setCurrentStep(2)}
             onNext={() => setCurrentStep(4)}
         />,
-        // 4: KDS
-        <StepKDS
-            data={wizardData.kds}
-            updateData={(u) => updateWizardData('kds', u)}
+        // 4: Wireless
+        <StepWireless
+            key="wireless"
+            data={wizardData.wireless}
+            updateData={(u) => updateWizardData('wireless', u)}
             onBack={() => setCurrentStep(3)}
             onNext={() => setCurrentStep(5)}
         />,
-        // 5: Review
-        <StepReview
-            data={wizardData}
+        // 5: KDS
+        <StepKDS
+            key="kds"
+            data={wizardData.kds}
+            updateData={(u) => updateWizardData('kds', u)}
             onBack={() => setCurrentStep(4)}
+            onNext={() => setCurrentStep(6)}
+        />,
+        // 6: Review
+        <StepReview
+            key="review"
+            data={wizardData}
+            onBack={() => setCurrentStep(5)}
             onCreate={handleCreateSandbox}
         />
     ];

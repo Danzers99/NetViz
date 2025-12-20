@@ -18,6 +18,9 @@ export interface WizardState {
     kds: {
         'elo-kds': number;
     };
+    projectInfo: {
+        name: string;
+    };
 }
 
 export const initialWizardState: WizardState = {
@@ -37,6 +40,9 @@ export const initialWizardState: WizardState = {
     },
     kds: {
         'elo-kds': 0,
+    },
+    projectInfo: {
+        name: ''
     }
 };
 
