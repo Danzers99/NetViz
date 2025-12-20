@@ -4,6 +4,7 @@ import { LayoutGrid, Settings, HelpCircle, RotateCcw, Download, Upload } from 'l
 import { Alerts } from './Alerts';
 import { SettingsPanel } from './SettingsPanel';
 import { DeviceProperties } from './DeviceProperties';
+import { SelectedPortIndicator } from './SelectedPortIndicator';
 import { RuntimeNotifications } from './RuntimeNotifications';
 import { Toast } from './Toast';
 import { useEffect } from 'react';
@@ -140,10 +141,21 @@ export const Layout = ({ children }: { children: ReactNode }) => {
 
             {/* Main Content */}
             <main className="flex-1 overflow-hidden relative bg-slate-50 dark:bg-slate-900">
-                {/* Top Left - Alerts & Notifications */}
-                <div className="absolute top-4 left-4 z-50 flex flex-col gap-2 items-start pointer-events-none max-w-md w-full">
-                    <Alerts />
-                    <RuntimeNotifications />
+                {/* Responsive HUD Container */}
+                <div className="absolute top-0 left-0 w-full z-50 pointer-events-none p-4 flex flex-col sm:flex-row sm:items-start gap-4">
+                    {/* Left: Alerts & Notifications */}
+                    <div className="flex flex-col gap-2 items-start max-w-md w-full sm:w-auto">
+                        <Alerts />
+                        <RuntimeNotifications />
+                    </div>
+
+                    {/* Center/Right (moves to new row on mobile): Selected Port Indicator */}
+                    <div className="flex-1 flex justify-center sm:justify-center">
+                        <SelectedPortIndicator />
+                    </div>
+
+                    {/* Spacer for symmetry if needed, or just let flex handle it */}
+                    <div className="hidden sm:block w-0 sm:w-auto flex-1"></div>
                 </div>
                 {children}
             </main>

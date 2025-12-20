@@ -244,13 +244,7 @@ export const DeviceActionMenu = ({ device, onClose }: DeviceActionMenuProps) => 
 
                 <div className="border-t border-slate-100 dark:border-slate-700 my-1"></div>
 
-                <button
-                    onClick={() => handleAction('reboot')}
-                    className="px-3 py-2 text-left hover:bg-slate-100 dark:hover:bg-slate-700 transition-colors flex items-center gap-2 text-slate-700 dark:text-slate-200"
-                >
-                    <span className="w-2 h-2 rounded-full bg-amber-500"></span>
-                    Reboot
-                </button>
+
 
                 <button
                     onClick={() => handleAction('power_cycle')}
