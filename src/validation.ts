@@ -1,4 +1,5 @@
 import type { Device, Port } from './types';
+import { getDeviceDefinition } from './data/deviceDefinitions';
 
 export interface ValidationError {
     id: string;
@@ -40,21 +41,16 @@ export const validateNetwork = (devices: Device[]): ValidationError[] => {
     };
 
     // Helper: Check if device is a router
-    const isRouter = (type: string) => ['zyxel-router', 'cradlepoint-router'].includes(type);
+    const isRouter = (type: string) => !!getDeviceDefinition(type as any).capabilities.isRouter;
 
     // Helper: Check if device is a switch
-    const isSwitch = (type: string) => ['managed-switch', 'unmanaged-switch'].includes(type);
+    const isSwitch = (type: string) => !!getDeviceDefinition(type as any).capabilities.isSwitch;
 
     // Helper: Check if device is an AP
-    const isAP = (type: string) => ['access-point', 'datto-ap440', 'datto-ap62'].includes(type);
+    const isAP = (type: string) => !!getDeviceDefinition(type as any).capabilities.isAP;
 
     // Helper: Check if device is an end device (POS, Printer, KDS, Mobile)
-    const isEndDevice = (type: string) => [
-        'pos', 'datavan-pos', 'poindus-pos', 'v3-pos', 'v4-pos',
-        'printer', 'epson-thermal', 'epson-impact',
-        'kds', 'elo-kds',
-        'orderpad', 'cakepop'
-    ].includes(type);
+    const isEndDevice = (type: string) => !!getDeviceDefinition(type as any).capabilities.isEndpoint;
 
     // Rule 1: Network Loops (LAN side)
     // Only traverse switches, APs, and Router LAN ports.
@@ -125,7 +121,7 @@ export const validateNetwork = (devices: Device[]): ValidationError[] => {
             const target = getConnected(wanPort);
             if (target) {
                 // Router WAN must connect to ISP modem's LAN port, not WAN port
-                if (target.device.type === 'isp-modem') {
+                if (getDeviceDefinition(target.device.type).capabilities.isModem) {
                     if (target.port.role !== 'lan') {
                         errors.push({
                             id: `router-wan-wrong-modem-port-${router.id}`,
@@ -156,7 +152,7 @@ export const validateNetwork = (devices: Device[]): ValidationError[] => {
     });
 
     // Rule 3: ISP Modem Misuse (Two routers / Modem LAN to Switch)
-    devices.filter(d => d.type === 'isp-modem').forEach(modem => {
+    devices.filter(d => getDeviceDefinition(d.type).capabilities.isModem).forEach(modem => {
         const lanPort = modem.ports.find(p => p.role === 'lan');
         if (lanPort && lanPort.connectedTo) {
             const target = getConnected(lanPort);
@@ -187,7 +183,7 @@ export const validateNetwork = (devices: Device[]): ValidationError[] => {
     // Rule 4: Devices bypassing the Router
     // Check if End Devices or APs are reachable from Modem WITHOUT going through Router WAN
     const modemLanSegment = new Set<string>();
-    devices.filter(d => d.type === 'isp-modem').forEach(modem => {
+    devices.filter(d => getDeviceDefinition(d.type).capabilities.isModem).forEach(modem => {
         const queue = [modem.id];
         const visitedModem = new Set<string>();
         visitedModem.add(modem.id);
@@ -316,7 +312,7 @@ export const validateNetwork = (devices: Device[]): ValidationError[] => {
     // ===== PoE INJECTOR & AP440 VALIDATION RULES =====
 
     // Rule 8: AP440 not connected through PoE injector
-    devices.filter(d => d.type === 'datto-ap440').forEach(ap => {
+    devices.filter(d => isAP(d.type)).forEach(ap => {
         const apPort = ap.ports.find(p => p.role === 'poe_client');
         if (apPort && apPort.connectedTo) {
             const target = getConnected(apPort);
@@ -331,7 +327,7 @@ export const validateNetwork = (devices: Device[]): ValidationError[] => {
                     });
                 }
                 // Check if connected to wrong injector port
-                else if (target.device.type === 'poe-injector' && target.port.role !== 'poe_source') {
+                else if (getDeviceDefinition(target.device.type).capabilities.isPoEInjector && target.port.role !== 'poe_source') {
                     errors.push({
                         id: `ap-wrong-injector-port-${ap.id}`,
                         message: `${ap.name} is connected to the injector's LAN port instead of the PoE port. Move the cable to the PoE port on the injector.`,
@@ -344,13 +340,13 @@ export const validateNetwork = (devices: Device[]): ValidationError[] => {
     });
 
     // Rule 9: PoE Injector LAN not connected to router LAN
-    devices.filter(d => d.type === 'poe-injector').forEach(injector => {
+    devices.filter(d => getDeviceDefinition(d.type).capabilities.isPoEInjector).forEach(injector => {
         const lanPort = injector.ports.find(p => p.role === 'uplink' && p.name.includes('LAN'));
         if (lanPort && lanPort.connectedTo) {
             const target = getConnected(lanPort);
             if (target) {
                 // Check if it's connected to router WAN or ISP modem (bad)
-                if (target.device.type === 'isp-modem' || target.port.role === 'wan') {
+                if (getDeviceDefinition(target.device.type).capabilities.isModem || target.port.role === 'wan') {
                     errors.push({
                         id: `injector-wrong-connection-${injector.id}`,
                         message: `PoE injector LAN is not connected to the Cake router's LAN. Connect it to a LAN port on the router or a switch that is already uplinked to the router.`,
@@ -379,7 +375,7 @@ export const validateNetwork = (devices: Device[]): ValidationError[] => {
     });
 
     // Rule 10: Injector missing power
-    devices.filter(d => d.type === 'poe-injector').forEach(injector => {
+    devices.filter(d => getDeviceDefinition(d.type).capabilities.isPoEInjector).forEach(injector => {
         const powerPort = injector.ports.find(p => p.role === 'power_input');
         if (powerPort && !powerPort.connectedTo) {
             // Find which AP is connected to this injector
@@ -399,12 +395,12 @@ export const validateNetwork = (devices: Device[]): ValidationError[] => {
     });
 
     // Rule 11: AP path to router verification
-    devices.filter(d => d.type === 'datto-ap440').forEach(ap => {
+    devices.filter(d => isAP(d.type)).forEach(ap => {
         // Check if AP has proper path to router through injector
         const apPort = ap.ports.find(p => p.role === 'poe_client');
         if (apPort && apPort.connectedTo) {
             const injectorConn = getConnected(apPort);
-            if (injectorConn && injectorConn.device.type === 'poe-injector') {
+            if (injectorConn && getDeviceDefinition(injectorConn.device.type).capabilities.isPoEInjector) {
                 // Check if injector has path to router
                 // REPLACED onlineDevices check with connectionState check
                 const isInjectorConnected = injectorConn.device.connectionState === 'online' || injectorConn.device.connectionState === 'associated_no_internet';
@@ -430,7 +426,7 @@ export const validateNetwork = (devices: Device[]): ValidationError[] => {
     });
 
     // Rule 12: Status-aware hints for AP440
-    devices.filter(d => d.type === 'datto-ap440').forEach(ap => {
+    devices.filter(d => isAP(d.type)).forEach(ap => {
         if (ap.status === 'offline') {
             const apPort = ap.ports.find(p => p.role === 'poe_client');
             let wiringCorrect = false;
@@ -438,7 +434,7 @@ export const validateNetwork = (devices: Device[]): ValidationError[] => {
             // Check if wiring looks correct
             if (apPort && apPort.connectedTo) {
                 const injectorConn = getConnected(apPort);
-                if (injectorConn && injectorConn.device.type === 'poe-injector' && injectorConn.port.role === 'poe_source') {
+                if (injectorConn && getDeviceDefinition(injectorConn.device.type).capabilities.isPoEInjector && injectorConn.port.role === 'poe_source') {
                     const injector = injectorConn.device;
                     const powerPort = injector.ports.find(p => p.role === 'power_input');
                     const lanPort = injector.ports.find(p => p.role === 'uplink');

@@ -1,4 +1,5 @@
 import type { Device } from '../types';
+import { getDeviceDefinition } from '../data/deviceDefinitions';
 import { checkPowerSource } from './power';
 import { checkUpstreamConnection } from './network';
 
@@ -94,7 +95,8 @@ export const updateLinkStatuses = (devices: Device[]): Device[] => {
         if (device.status !== 'online') return false;
 
         // Passthrough Logic (Injector)
-        if (device.type === 'poe-injector') {
+        const def = getDeviceDefinition(device.type);
+        if (def.capabilities.isPoEInjector) {
             const port = device.ports.find(p => p.id === portId)!;
             if (port.role === 'poe_source') { // PoE Out
                 // Requires LAN IN connection? 

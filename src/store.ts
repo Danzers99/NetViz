@@ -1,5 +1,6 @@
 import { create } from 'zustand';
 import { validateNetwork } from './validation';
+import { getDeviceDefinition } from './data/deviceDefinitions';
 import { propagatePowerState, updateLinkStatuses, updateConnectionStates } from './utils/simulation';
 import type { ValidationError } from './validation';
 import type { Device, DeviceType, Port, Settings, DeviceAction, ConfigData, ProjectInfo } from './types';
@@ -52,70 +53,14 @@ interface AppState {
 }
 
 export const generatePorts = (type: DeviceType, deviceId: string): Port[] => {
-    const ports: Port[] = [];
-
-    switch (type) {
-        case 'isp-modem':
-            ports.push({ id: `${deviceId}-wan`, name: 'ISP/Coax', role: 'wan', connectedTo: null, linkStatus: 'down' });
-            ports.push({ id: `${deviceId}-lan`, name: 'LAN', role: 'lan', connectedTo: null, linkStatus: 'down' });
-            break;
-        case 'zyxel-router':
-        case 'cradlepoint-router':
-            ports.push({ id: `${deviceId}-wan`, name: 'WAN', role: 'wan', connectedTo: null, linkStatus: 'down' });
-            for (let i = 1; i <= 4; i++) {
-                ports.push({ id: `${deviceId}-lan${i}`, name: `LAN ${i}`, role: 'lan', connectedTo: null, linkStatus: 'down' });
-            }
-            ports.push({ id: `${deviceId}-pwr`, name: 'Power', role: 'power_input', connectedTo: null, linkStatus: 'down' });
-            break;
-        case 'managed-switch':
-        case 'unmanaged-switch':
-            for (let i = 1; i <= 8; i++) {
-                ports.push({ id: `${deviceId}-p${i}`, name: `Port ${i}`, role: 'generic', connectedTo: null, linkStatus: 'down' });
-            }
-            ports.push({ id: `${deviceId}-pwr`, name: 'Power', role: 'power_input', connectedTo: null, linkStatus: 'down' });
-            break;
-        case 'access-point':
-        case 'datto-ap62':
-            ports.push({ id: `${deviceId}-eth`, name: 'ETH', role: 'poe_client', connectedTo: null, linkStatus: 'down' });
-            break;
-        case 'datto-ap440':
-            // AP440 requires PoE, so it uses poe_client role
-            ports.push({ id: `${deviceId}-eth_poe`, name: 'ETH/PoE', role: 'poe_client', connectedTo: null, linkStatus: 'down' });
-            break;
-        case 'poe-injector':
-            ports.push({ id: `${deviceId}-poe_out`, name: 'PoE OUT', role: 'poe_source', connectedTo: null, linkStatus: 'down' });
-            ports.push({ id: `${deviceId}-lan_in`, name: 'LAN IN', role: 'uplink', connectedTo: null, linkStatus: 'down' });
-            ports.push({ id: `${deviceId}-power`, name: 'POWER', role: 'power_input', connectedTo: null, linkStatus: 'down' });
-            break;
-        case 'power-outlet':
-            // Power outlet can have multiple outlets
-            for (let i = 1; i <= 4; i++) {
-                ports.push({ id: `${deviceId}-outlet${i}`, name: `Outlet ${i}`, role: 'power_source', connectedTo: null, linkStatus: 'down' });
-            }
-            break;
-        case 'pos':
-        case 'datavan-pos':
-        case 'poindus-pos':
-        case 'v3-pos':
-        case 'v4-pos':
-        case 'printer':
-        case 'epson-thermal':
-        case 'epson-impact':
-        case 'kds':
-        case 'elo-kds':
-            ports.push({ id: `${deviceId}-eth`, name: 'ETH', role: 'access', connectedTo: null, linkStatus: 'down' });
-            ports.push({ id: `${deviceId}-pwr`, name: 'Power', role: 'power_input', connectedTo: null, linkStatus: 'down' });
-            break;
-        case 'orderpad':
-        case 'cakepop':
-            // No physical ports for these mobile devices
-            break;
-        case 'unknown':
-            ports.push({ id: `${deviceId}-p1`, name: 'Port 1', role: 'generic', connectedTo: null, linkStatus: 'down' });
-            ports.push({ id: `${deviceId}-p2`, name: 'Port 2', role: 'generic', connectedTo: null, linkStatus: 'down' });
-            break;
-    }
-    return ports;
+    const def = getDeviceDefinition(type);
+    return def.ports.map(p => ({
+        id: `${deviceId}-${p.id}`,
+        name: p.label,
+        role: p.role,
+        connectedTo: null,
+        linkStatus: 'down'
+    }));
 };
 
 export const useAppStore = create<AppState>((set, get) => ({

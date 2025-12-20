@@ -1,4 +1,5 @@
 import type { Device, ConnectionState } from '../types';
+import { getDeviceDefinition } from '../data/deviceDefinitions';
 
 
 
@@ -97,7 +98,8 @@ const hasPathToRouter = (device: Device, devices: Device[], visited: Set<string>
     if (visited.has(device.id)) return false;
     visited.add(device.id);
 
-    if ((device.type === 'zyxel-router' || device.type === 'cradlepoint-router') && device.status === 'online') return true;
+    const def = getDeviceDefinition(device.type);
+    if (def.capabilities.isRouter && device.status === 'online') return true;
 
     for (const port of device.ports) {
         if (!port.connectedTo) continue;
