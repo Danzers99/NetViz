@@ -15,10 +15,12 @@ export const Layout = ({ children }: { children: ReactNode }) => {
     const step = useAppStore((state) => state.step);
     const exportConfig = useAppStore((state) => state.exportConfig);
     const importConfig = useAppStore((state) => state.importConfig);
+    const devices = useAppStore((state) => state.devices);
     const darkMode = useAppStore((state) => state.settings.darkMode);
     const [showSettings, setShowSettings] = useState(false);
 
     const fileInputRef = useRef<HTMLInputElement>(null);
+    const lastSavedDevicesRef = useRef<string>('');
 
     const handleSave = () => {
         const config = exportConfig();
@@ -40,6 +42,9 @@ export const Layout = ({ children }: { children: ReactNode }) => {
         a.click();
         document.body.removeChild(a);
         URL.revokeObjectURL(url);
+
+        // Update baseline for unsaved changes
+        lastSavedDevicesRef.current = JSON.stringify(config.devices);
     };
 
     const handleLoadClick = () => {
@@ -55,6 +60,8 @@ export const Layout = ({ children }: { children: ReactNode }) => {
             try {
                 const config = JSON.parse(event.target?.result as string);
                 importConfig(config);
+                // Update baseline for unsaved changes
+                lastSavedDevicesRef.current = JSON.stringify(config.devices);
             } catch (error) {
                 console.error('Failed to load config', error);
                 alert('Failed to load configuration file');
@@ -72,6 +79,29 @@ export const Layout = ({ children }: { children: ReactNode }) => {
             document.documentElement.classList.remove('dark');
         }
     }, [darkMode]);
+
+    // Track initial state when entering sandbox
+    useEffect(() => {
+        if (step === 'sandbox') {
+            lastSavedDevicesRef.current = JSON.stringify(devices);
+        }
+    }, [step]); // Only update on step change (Generate/Load)
+
+    // Warn on unsaved changes
+    useEffect(() => {
+        const handleBeforeUnload = (e: BeforeUnloadEvent) => {
+            if (step !== 'sandbox') return;
+
+            const current = JSON.stringify(devices);
+            if (current !== lastSavedDevicesRef.current) {
+                e.preventDefault();
+                e.returnValue = ''; // Legacy requirement for Chrome
+            }
+        };
+
+        window.addEventListener('beforeunload', handleBeforeUnload);
+        return () => window.removeEventListener('beforeunload', handleBeforeUnload);
+    }, [devices, step]);
 
     return (
         <div className="flex h-screen bg-slate-50 dark:bg-slate-900 text-slate-900 dark:text-slate-100 font-sans relative overflow-hidden">

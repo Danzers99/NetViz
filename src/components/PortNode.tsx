@@ -4,6 +4,18 @@ import { Html } from '@react-three/drei';
 import { useAppStore } from '../store';
 import type { Port } from '../types';
 
+const getRoleLabel = (role: string) => {
+    switch (role) {
+        case 'wan': return 'Internet (WAN)';
+        case 'uplink': return 'LAN / Uplink';
+        case 'poe_source': return 'PoE Out';
+        case 'poe_client': return 'PoE In';
+        case 'power_input': return 'Power In';
+        case 'power_source': return 'Power Out';
+        default: return role.toUpperCase().replace('_', ' ');
+    }
+};
+
 export const PortNode = ({ port, position, orientation = [0, 0, 0] }: { port: Port; position: [number, number, number], orientation?: [number, number, number] }) => {
     const selectedPortId = useAppStore((state) => state.selectedPortId);
     const selectPort = useAppStore((state) => state.selectPort);
@@ -49,7 +61,8 @@ export const PortNode = ({ port, position, orientation = [0, 0, 0] }: { port: Po
             case 'uplink': return '#3b82f6'; // Blue for Uplink
             case 'poe_source': return '#f59e0b'; // Amber for PoE Out
             case 'poe_client': return '#f59e0b'; // Amber for PoE In
-            case 'power_input': return '#000000'; // Power
+            case 'power_input': return '#facc15'; // Yellow for Power Visibility
+            case 'power_source': return '#facc15'; // Yellow for Power Visibility
             default: return '#334155'; // Dark Slate for LAN
         }
     };
@@ -113,7 +126,7 @@ export const PortNode = ({ port, position, orientation = [0, 0, 0] }: { port: Po
             {localHovered && (
                 <Html position={[0, 0.2, 0]} center pointerEvents="none" zIndexRange={[0, 0]}>
                     <div className="bg-black/90 text-white px-1.5 py-0.5 rounded text-[10px] whitespace-nowrap border border-slate-700 z-0">
-                        {port.name} ({port.role.toUpperCase()})
+                        {port.name} ({getRoleLabel(port.role)})
                     </div>
                 </Html>
             )}

@@ -138,6 +138,10 @@ export const StepReview = ({ data, onBack, onCreate }: StepReviewProps) => {
                             </div>
                         </div>
                     </div>
+
+                    <div className="text-center text-sm text-slate-500 dark:text-slate-400 italic">
+                        Devices will appear unconnected in the sandbox. You must wire them manually.
+                    </div>
                 </div>
             </div>
         </WizardStepLayout>

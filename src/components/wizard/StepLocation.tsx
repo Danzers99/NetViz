@@ -37,7 +37,7 @@ export const StepLocation = ({ projectName, updateProjectName, onBack, onNext }:
 
     return (
         <WizardStepLayout
-            title="Project Metadata"
+            title="Site Details"
             description="Give your new sandbox location a name to identify it later."
             onBack={onBack}
             onNext={onNext}
@@ -61,8 +61,8 @@ export const StepLocation = ({ projectName, updateProjectName, onBack, onNext }:
                             onBlur={handleBlur}
                             placeholder="Example: Taco Shop - Plant City"
                             className={`block w-full pl-10 pr-3 py-3 border rounded-lg bg-slate-50 dark:bg-slate-900 text-slate-900 dark:text-white placeholder-slate-400 focus:ring-2 transition-all ${showValidationError
-                                    ? 'border-red-300 focus:border-red-500 focus:ring-red-200 dark:focus:ring-red-900/30'
-                                    : 'border-slate-200 dark:border-slate-700 focus:border-orange-500 focus:ring-orange-200 dark:focus:ring-orange-900/30'
+                                ? 'border-red-300 focus:border-red-500 focus:ring-red-200 dark:focus:ring-red-900/30'
+                                : 'border-slate-200 dark:border-slate-700 focus:border-orange-500 focus:ring-orange-200 dark:focus:ring-orange-900/30'
                                 }`}
                             autoFocus
                         />
