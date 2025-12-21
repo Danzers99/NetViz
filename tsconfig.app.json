@@ -32,6 +32,6 @@
     "src"
   ],
   "exclude": [
-    "src/utils/test_persistence_manual.ts"
+    "src/utils/test_*.ts"
   ]
 }
