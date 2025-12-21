@@ -6,16 +6,18 @@ const SETTINGS_STORAGE_KEY = 'netviz-settings';
 
 export const loadSettingsFromStorage = (): Settings => {
     try {
-        const stored = localStorage.getItem(SETTINGS_STORAGE_KEY);
-        if (stored) {
-            const parsed = JSON.parse(stored);
-            // Merge with defaults to ensure new setting keys exist
-            return {
-                showWarnings: true,
-                compactWarnings: false,
-                darkMode: false,
-                ...parsed
-            };
+        if (typeof localStorage !== 'undefined') {
+            const stored = localStorage.getItem(SETTINGS_STORAGE_KEY);
+            if (stored) {
+                const parsed = JSON.parse(stored);
+                // Merge with defaults to ensure new setting keys exist
+                return {
+                    showWarnings: true,
+                    compactWarnings: false,
+                    darkMode: false,
+                    ...parsed
+                };
+            }
         }
     } catch (e) {
         console.warn('Failed to load settings from storage', e);
@@ -29,7 +31,9 @@ export const loadSettingsFromStorage = (): Settings => {
 
 export const saveSettingsToStorage = (settings: Settings) => {
     try {
-        localStorage.setItem(SETTINGS_STORAGE_KEY, JSON.stringify(settings));
+        if (typeof localStorage !== 'undefined') {
+            localStorage.setItem(SETTINGS_STORAGE_KEY, JSON.stringify(settings));
+        }
     } catch (e) {
         console.warn('Failed to save settings to storage', e);
     }

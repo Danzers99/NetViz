@@ -126,7 +126,7 @@ export const DeviceNode = ({ device }: { device: Device }) => {
                             return <InjectorModel status={status} />;
                         case 'managed-switch':
                         case 'unmanaged-switch':
-                            return <SwitchModel type={device.type} status={status} />;
+                            return <SwitchModel type={device.type} status={status} connectionState={device.connectionState} />;
                         case 'pos':
                         case 'datavan-pos':
                         case 'poindus-pos':
@@ -139,7 +139,7 @@ export const DeviceNode = ({ device }: { device: Device }) => {
                         case 'printer':
                         case 'epson-thermal':
                         case 'epson-impact':
-                            return <PrinterModel status={status} />;
+                            return <PrinterModel status={status} connectionState={device.connectionState} />;
                         case 'cakepop':
                             return <CakePOPModel status={status} connectionState={device.connectionState} />;
                         case 'orderpad':

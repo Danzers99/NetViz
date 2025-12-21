@@ -1,15 +1,29 @@
 import type { DeviceType, ConnectionState } from '../../types';
 
-export const SwitchModel = ({ type, status }: { type: DeviceType, status: string }) => {
+export const SwitchModel = ({ type, status, connectionState }: { type: DeviceType, status: string, connectionState?: ConnectionState }) => {
     // Rack mount style wide metal box
     let color = type === 'managed-switch' ? '#334155' : '#475569';
     if (status === 'offline') color = '#1e293b';
 
+    // Status Light
+    const ledColor = getScreenColor(status, connectionState);
+
     return (
-        <mesh position={[0, 0.22, 0]}>
-            <boxGeometry args={[1.8, 0.44, 1.0]} /> {/* Standard 1U-ish ratio */}
-            <meshStandardMaterial color={color} metalness={0.3} />
-        </mesh>
+        <group position={[0, 0.22, 0]}>
+            <mesh>
+                <boxGeometry args={[1.8, 0.44, 1.0]} /> {/* Standard 1U-ish ratio */}
+                <meshStandardMaterial color={color} metalness={0.3} />
+            </mesh>
+            {/* Status LED on front */}
+            <mesh position={[-0.8, 0.0, 0.51]}>
+                <sphereGeometry args={[0.04, 16, 16]} />
+                <meshStandardMaterial
+                    color={ledColor}
+                    emissive={ledColor}
+                    emissiveIntensity={status === 'offline' ? 0 : 0.5}
+                />
+            </mesh>
+        </group>
     );
 };
 
@@ -64,14 +78,28 @@ export const POSModel = ({ status, connectionState }: { status?: string, connect
     );
 };
 
-export const PrinterModel = ({ status }: { status?: string }) => {
+export const PrinterModel = ({ status, connectionState }: { status?: string, connectionState?: ConnectionState }) => {
     // Cube printer
     const color = status === 'offline' ? '#27272a' : '#3f3f46';
+    const ledColor = getScreenColor(status || 'online', connectionState);
+
     return (
-        <mesh position={[0, 0.3, 0]}>
-            <boxGeometry args={[0.6, 0.6, 0.6]} />
-            <meshStandardMaterial color={color} />
-        </mesh>
+        <group position={[0, 0.3, 0]}>
+            {/* Body */}
+            <mesh>
+                <boxGeometry args={[0.6, 0.6, 0.6]} />
+                <meshStandardMaterial color={color} />
+            </mesh>
+            {/* Status LED */}
+            <mesh position={[0.2, 0.2, 0.31]}>
+                <circleGeometry args={[0.03, 16]} />
+                <meshStandardMaterial
+                    color={ledColor}
+                    emissive={ledColor}
+                    emissiveIntensity={status === 'offline' ? 0 : 0.5}
+                />
+            </mesh>
+        </group>
     );
 };
 

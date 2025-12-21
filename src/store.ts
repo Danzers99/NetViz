@@ -300,43 +300,60 @@ export const useAppStore = create<AppState>((set, get) => ({
         }),
     disconnectPort: (portId) =>
         set((state) => {
-            // Create deep copies to ensure React detects changes
-            let devices = state.devices.map(device => ({
-                ...device,
-                ports: device.ports.map(port => ({ ...port }))
-            }));
+            // 1. Identify valid targets first without mutating anything
+            let targetDeviceId: string | null = null;
+            let targetPortId: string | null = null;
+            let sourceDeviceId: string | null = null;
 
-            let targetId: string | null = null;
-
-            // Find the port to disconnect and its connected port
-            for (const device of devices) {
-                const port = device.ports.find(p => p.id === portId);
-                if (port) {
-                    targetId = port.connectedTo;
-                    port.connectedTo = null;
-                    port.linkStatus = 'down';
+            // Find valid source
+            for (const d of state.devices) {
+                const p = d.ports.find(x => x.id === portId);
+                if (p) {
+                    sourceDeviceId = d.id;
+                    targetPortId = p.connectedTo;
                     break;
                 }
             }
 
-            // Disconnect the other end
-            if (targetId) {
-                for (const device of devices) {
-                    const port = device.ports.find(p => p.id === targetId);
-                    if (port) {
-                        port.connectedTo = null;
-                        port.linkStatus = 'down';
-                        break;
-                    }
+            if (!sourceDeviceId || !targetPortId) return {}; // Nothing to disconnect
+
+            // Find valid target device
+            for (const d of state.devices) {
+                const p = d.ports.find(x => x.id === targetPortId);
+                if (p) {
+                    targetDeviceId = d.id;
+                    break;
                 }
             }
 
-            const errors = validateNetwork(devices);
+            // 2. Create New State Immutably
+            let devices = state.devices.map(d => {
+                // Return new object for affected devices
+                if (d.id === sourceDeviceId || d.id === targetDeviceId) {
+                    return {
+                        ...d,
+                        ports: d.ports.map(p => {
+                            // Clear Source Port
+                            if (p.id === portId) {
+                                return { ...p, connectedTo: null, linkStatus: 'down' as const };
+                            }
+                            // Clear Target Port
+                            if (p.id === targetPortId) {
+                                return { ...p, connectedTo: null, linkStatus: 'down' as const };
+                            }
+                            return p;
+                        })
+                    };
+                }
+                return d;
+            });
 
-            // Run simulation
+            // 3. Re-run Simulation
             devices = propagatePowerState(devices);
-            devices = updateLinkStatuses(devices); // Cables disconnected, so link status updates
+            devices = updateLinkStatuses(devices);
             devices = updateConnectionStates(devices);
+
+            const errors = validateNetwork(devices);
 
             return { devices, validationErrors: errors };
         }),
