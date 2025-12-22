@@ -18,7 +18,10 @@ const WifiConnectMenu = ({ device, onClose, onBack }: { device: Device, onClose:
 
     const [ssid, setSsid] = useState(device.wireless?.ssid || '');
     const [password, setPassword] = useState(device.wireless?.password || '');
-    const [status, setStatus] = useState<'idle' | 'connecting' | 'error'>('idle');
+    const [status, setStatus] = useState<'idle' | 'connecting' | 'done'>('idle');
+
+    // Use device state for feedback directly
+    const connectionState = device.connectionState;
 
     const handleConnect = () => {
         if (!ssid) return;
@@ -35,8 +38,30 @@ const WifiConnectMenu = ({ device, onClose, onBack }: { device: Device, onClose:
                     password: password
                 }
             });
-            onClose();
-        }, 1500);
+            setStatus('done');
+            // Do NOT close immediately. Let user see the result.
+        }, 1200);
+    };
+
+    const getFeedback = () => {
+        if (status === 'connecting') return null;
+        if (status === 'idle') return null; // Initial state
+
+        // After 'done'
+        if (connectionState === 'online') {
+            return <div className="text-green-600 dark:text-green-400 text-[11px] font-bold text-center bg-green-50 dark:bg-green-900/20 py-1 rounded">✅ Connected Successfully</div>;
+        }
+        if (connectionState === 'auth_failed') {
+            return <div className="text-red-500 dark:text-red-400 text-[11px] font-bold text-center bg-red-50 dark:bg-red-900/20 py-1 rounded">❌ Authentication Failed</div>;
+        }
+        if (connectionState === 'associated_no_internet') {
+            return <div className="text-amber-500 dark:text-amber-400 text-[11px] font-bold text-center bg-amber-50 dark:bg-amber-900/20 py-1 rounded">⚠️ No Internet Access</div>;
+        }
+        if (connectionState === 'disconnected') {
+            // If we tried connecting but are still disconnected, it means SSID not found
+            return <div className="text-slate-500 dark:text-slate-400 text-[11px] font-bold text-center bg-slate-100 dark:bg-slate-800 py-1 rounded">❌ Network Not Found</div>;
+        }
+        return null;
     };
 
     return (
@@ -47,12 +72,18 @@ const WifiConnectMenu = ({ device, onClose, onBack }: { device: Device, onClose:
                 </button>
                 <span className="font-bold text-xs uppercase text-slate-400">Connect to WiFi</span>
             </div>
+
+            {getFeedback()}
+
             <div>
                 <label className="block text-[10px] text-slate-500 dark:text-slate-400 mb-1">Network Name (SSID)</label>
                 <input
                     className="w-full bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded px-2 py-1 text-xs text-slate-900 dark:text-white placeholder:text-slate-400 dark:placeholder:text-slate-600 focus:outline-none focus:ring-1 focus:ring-blue-500"
                     value={ssid}
-                    onChange={e => setSsid(e.target.value)}
+                    onChange={e => {
+                        setSsid(e.target.value);
+                        setStatus('idle'); // Reset status on edit
+                    }}
                     placeholder="Enter SSID"
                     disabled={status === 'connecting'}
                 />
@@ -62,7 +93,10 @@ const WifiConnectMenu = ({ device, onClose, onBack }: { device: Device, onClose:
                 <input
                     className="w-full bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded px-2 py-1 text-xs text-slate-900 dark:text-white placeholder:text-slate-400 dark:placeholder:text-slate-600 focus:outline-none focus:ring-1 focus:ring-blue-500"
                     value={password}
-                    onChange={e => setPassword(e.target.value)}
+                    onChange={e => {
+                        setPassword(e.target.value);
+                        setStatus('idle');
+                    }}
                     placeholder="Password"
                     type="text"
                     disabled={status === 'connecting'}
@@ -80,7 +114,7 @@ const WifiConnectMenu = ({ device, onClose, onBack }: { device: Device, onClose:
                 {status === 'connecting' ? (
                     <div className="w-3 h-3 border-2 border-white/30 border-t-white rounded-full animate-spin" />
                 ) : (
-                    <><Save size={12} /> Join Network</>
+                    <><Save size={12} /> {status === 'done' ? 'Update Network' : 'Join Network'}</>
                 )}
             </button>
         </div >
