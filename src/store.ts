@@ -43,6 +43,7 @@ interface AppState {
     addRoom: (type: RoomType) => void;
     updateRoom: (id: string, updates: Partial<Room>) => void;
     removeRoom: (id: string) => void;
+    setDraggingRoom: (dragging: boolean) => void;
 
     // Hover/Tracing State
     hoveredElement: { type: 'port' | 'cable'; id: string } | null;
