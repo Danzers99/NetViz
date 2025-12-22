@@ -13,7 +13,7 @@ interface DeviceActionMenuProps {
 
 type MenuState = 'main' | 'wifi_connect' | 'wifi_host' | 'identity';
 
-const WifiConnectMenu = ({ device, onClose, onBack }: { device: Device, onClose: () => void, onBack: () => void }) => {
+const WifiConnectMenu = ({ device, onBack }: { device: Device, onBack: () => void }) => {
     const updateDevice = useAppStore((state) => state.updateDevice);
 
     const [ssid, setSsid] = useState(device.wireless?.ssid || '');
@@ -202,7 +202,7 @@ export const DeviceActionMenu = ({ device, onClose }: DeviceActionMenuProps) => 
     if (view === 'wifi_connect') return (
         <Html position={[0, 0.5, 0]} center zIndexRange={[100, 0]}>
             <div className="bg-white dark:bg-slate-800 text-slate-900 dark:text-white border border-slate-200 dark:border-slate-600 rounded shadow-xl flex flex-col min-w-[160px] overflow-hidden text-sm">
-                <WifiConnectMenu device={device} onClose={onClose} onBack={() => setView('main')} />
+                <WifiConnectMenu device={device} onBack={() => setView('main')} />
             </div>
         </Html>
     );
