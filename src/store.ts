@@ -63,6 +63,10 @@ interface AppState {
     // Notifications
     notification: { message: string; type: 'error' | 'success' | 'info' } | null;
     setNotification: (notification: { message: string; type: 'error' | 'success' | 'info' } | null) => void;
+
+    // Camera
+    cameraResetTrigger: number;
+    triggerCameraReset: () => void;
 }
 
 export const generatePorts = (type: DeviceType, deviceId: string): Port[] => {
@@ -120,6 +124,9 @@ export const useAppStore = create<AppState>((set, get) => ({
 
     notification: null,
     setNotification: (notification) => set({ notification }),
+
+    cameraResetTrigger: 0,
+    triggerCameraReset: () => set(state => ({ cameraResetTrigger: state.cameraResetTrigger + 1 })),
 
     hoveredElement: null,
     highlightedPorts: new Set(),

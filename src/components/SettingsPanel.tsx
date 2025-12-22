@@ -60,6 +60,19 @@ export const SettingsPanel = ({ onClose }: { onClose: () => void }) => {
                         </button>
                     </div>
                 </div>
+
+                <div className="space-y-4">
+                    <h3 className="text-sm font-semibold text-slate-400 uppercase tracking-wider">Camera</h3>
+                    <div className="flex items-center justify-between">
+                        <label className="text-slate-700 dark:text-slate-300 font-medium">Reset View</label>
+                        <button
+                            onClick={() => useAppStore.getState().triggerCameraReset()}
+                            className="px-4 py-1.5 bg-slate-200 dark:bg-slate-700 hover:bg-slate-300 dark:hover:bg-slate-600 rounded text-sm text-slate-700 dark:text-slate-300 font-medium transition-colors"
+                        >
+                            Center
+                        </button>
+                    </div>
+                </div>
             </div>
 
             <div className="p-4 border-t border-slate-100 dark:border-slate-700 text-center">

@@ -7,6 +7,7 @@ import { Cables } from './Cables';
 
 import { Toolbox } from './Toolbox';
 import { WasdControls } from './WasdControls';
+import { ViewportClamp } from './ViewportClamp';
 import { RoomLayer } from './RoomLayer';
 import { WireCancellationHandler } from './WireCancellationHandler';
 
@@ -41,6 +42,7 @@ export const Sandbox = () => {
                     />
                     <OrbitControls ref={controlsRef} makeDefault />
                     <WasdControls />
+                    <ViewportClamp />
                     <Environment preset="city" />
                     <WireCancellationHandler />
 
