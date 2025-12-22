@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { Html } from '@react-three/drei';
 import { useAppStore } from '../store';
 import type { Device, DeviceAction } from '../types';
+import { isWifiCapable } from '../utils/wifi';
 
 import { Trash2, Wifi, Settings, ArrowLeft, Save } from 'lucide-react';
 
@@ -161,7 +162,7 @@ export const DeviceActionMenu = ({ device, onClose }: DeviceActionMenuProps) => 
         onClose();
     };
 
-    const isWirelessClient = ['orderpad', 'cakepop', 'pos', 'datavan-pos', 'poindus-pos', 'v3-pos', 'v4-pos', 'elo-kds'].includes(device.type) || !!device.wireless;
+    const isWirelessClient = isWifiCapable(device.type);
     const isWirelessHost = !!device.wifiHosting;
 
     if (view === 'wifi_connect') return (

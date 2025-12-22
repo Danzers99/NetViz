@@ -55,6 +55,7 @@ export const DeviceNode = ({ device }: { device: Device }) => {
     const setDraggingDevice = useAppStore((state) => state.setDraggingDevice);
     const selectPort = useAppStore((state) => state.selectPort);
     const selectDevice = useAppStore((state) => state.selectDevice);
+    const layoutMode = useAppStore((state) => state.layoutMode);
     const [isDragging, setIsDragging] = useState(false);
     const [showMenu, setShowMenu] = useState(false);
     const planeRef = useRef(new THREE.Plane(new THREE.Vector3(0, 1, 0), 0));
@@ -105,7 +106,9 @@ export const DeviceNode = ({ device }: { device: Device }) => {
                 onPointerOut={() => { document.body.style.cursor = 'auto'; }}
                 onContextMenu={(e) => {
                     e.stopPropagation();
-                    setShowMenu(true);
+                    if (!layoutMode) { // Disable menu in Layout Mode
+                        setShowMenu(true);
+                    }
                 }}
             >
 

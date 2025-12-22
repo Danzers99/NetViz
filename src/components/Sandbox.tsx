@@ -7,19 +7,23 @@ import { Cables } from './Cables';
 
 import { Toolbox } from './Toolbox';
 import { WasdControls } from './WasdControls';
+import { RoomLayer } from './RoomLayer';
+import { WireCancellationHandler } from './WireCancellationHandler';
 
 export const Sandbox = () => {
     const devices = useAppStore((state) => state.devices);
     const isDraggingDevice = useAppStore((state) => state.isDraggingDevice);
+    const isDraggingRoom = useAppStore((state) => state.isDraggingRoom);
     const darkMode = useAppStore((state) => state.settings.darkMode);
+    const layoutMode = useAppStore((state) => state.layoutMode);
     const controlsRef = useRef<any>(null);
 
-    // Disable camera controls when dragging a device
+    // Disable camera controls when dragging a device or room
     useEffect(() => {
         if (controlsRef.current) {
-            controlsRef.current.enabled = !isDraggingDevice;
+            controlsRef.current.enabled = !isDraggingDevice && !isDraggingRoom;
         }
-    }, [isDraggingDevice]);
+    }, [isDraggingDevice, isDraggingRoom]);
 
     return (
         <div className="w-full h-full bg-slate-50 dark:bg-slate-900 relative transition-colors duration-300">
@@ -38,8 +42,11 @@ export const Sandbox = () => {
                     <OrbitControls ref={controlsRef} makeDefault />
                     <WasdControls />
                     <Environment preset="city" />
+                    <WireCancellationHandler />
 
-                    <Cables />
+                    <RoomLayer />
+                    {/* Hide cables in Layout Mode for cleaner view */}
+                    {!layoutMode && <Cables />}
 
                     {devices.map((device) => (
                         <DeviceNode key={device.id} device={device} />
@@ -55,12 +62,11 @@ export const Sandbox = () => {
                     <li>• Right Click + Drag to Pan</li>
                     <li>• Scroll to Zoom</li>
                     <li>• Drag devices to move them</li>
-                    <li>• Click ports to connect them</li>
-                    <li>• Right Click ports to disconnect</li>
+                    {!layoutMode && <li>• Click ports to connect them</li>}
+                    {!layoutMode && <li>• Right Click ports to disconnect</li>}
+                    {layoutMode && <li>• Click + Drag Room edges to resize</li>}
                 </ul>
             </div>
-
-
 
             <Toolbox />
         </div>

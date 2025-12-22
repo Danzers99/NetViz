@@ -1,5 +1,6 @@
 import type { ConfigData, Settings } from '../types';
 import { propagatePowerState, updateLinkStatuses, updateConnectionStates } from './simulation';
+import { isWifiCapable } from './wifi';
 // import { validateNetwork } from '../validation';
 
 const SETTINGS_STORAGE_KEY = 'netviz-settings';
@@ -212,6 +213,18 @@ export const validateAndSanitizeConfig = (data: ConfigData): { valid: boolean; e
                         continue;
                     }
                 }
+            }
+        }
+    }
+
+    // 4.5. Validate Wireless Capability
+    for (const d of data.devices) {
+        if (d.wireless && !isWifiCapable(d.type)) {
+            console.warn(`Removing invalid wireless config from non-capable device ${d.type} (${d.id})`);
+            delete d.wireless;
+            // Reset connection state if it was wifi-related
+            if (['associating_wifi', 'auth_failed', 'associated_no_ip', 'associated_no_internet'].includes(d.connectionState || '')) {
+                d.connectionState = 'disconnected';
             }
         }
     }

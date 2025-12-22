@@ -1,5 +1,6 @@
 import type { Device, ConnectionState } from '../types';
 import { getDeviceDefinition } from '../data/deviceDefinitions';
+import { isWifiCapable } from './wifi';
 
 
 
@@ -38,7 +39,7 @@ export const checkUpstreamConnection = (device: Device, allDevices: Device[]): C
     }
 
     // 2. Check Wireless Connection (Fallback)
-    if (device.wireless?.ssid) {
+    if (device.wireless?.ssid && isWifiCapable(device.type)) {
         const ap = findBestAP(device, allDevices);
         if (!ap) return 'disconnected';
 

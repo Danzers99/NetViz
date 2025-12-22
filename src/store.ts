@@ -1,9 +1,10 @@
 import { create } from 'zustand';
 import { validateNetwork } from './validation';
 import { getDeviceDefinition } from './data/deviceDefinitions';
+import { isWifiCapable } from './utils/wifi';
 import { propagatePowerState, updateLinkStatuses, updateConnectionStates } from './utils/simulation';
 import type { ValidationError } from './validation';
-import type { Device, DeviceType, Port, Settings, DeviceAction, ConfigData, ProjectInfo } from './types';
+import type { Device, DeviceType, Port, Settings, DeviceAction, ConfigData, ProjectInfo, Room, RoomType } from './types';
 import { migrateConfig, validateAndSanitizeConfig, CURRENT_SCHEMA_VERSION, loadSettingsFromStorage, saveSettingsToStorage } from './utils/persistence';
 
 interface AppState {
@@ -12,10 +13,14 @@ interface AppState {
     projectInfo: ProjectInfo; // Current project metadata
     deviceCounts: Record<DeviceType, number>;
     devices: Device[];
+    rooms: Room[]; // Added for Layout Mode
+    layoutMode: boolean; // Toggle for Layout Mode
     selectedPortId: string | null;
     selectedDeviceId: string | null;
+    selectedRoomId: string | null; // Track selected room
     propertiesPanelDeviceId: string | null;
     isDraggingDevice: boolean;
+    isDraggingRoom: boolean;
     validationErrors: ValidationError[];
 
     setDeviceCount: (type: DeviceType, count: number) => void;
@@ -28,9 +33,16 @@ interface AppState {
     disconnectPort: (portId: string) => void;
     selectPort: (portId: string | null) => void;
     selectDevice: (deviceId: string | null) => void;
+    selectRoom: (roomId: string | null) => void; // Action
     setPropertiesPanelDeviceId: (deviceId: string | null) => void;
     setDraggingDevice: (dragging: boolean) => void;
     reset: () => void;
+
+    // Layout Mode Actions
+    toggleLayoutMode: () => void;
+    addRoom: (type: RoomType) => void;
+    updateRoom: (id: string, updates: Partial<Room>) => void;
+    removeRoom: (id: string) => void;
 
     // Hover/Tracing State
     hoveredElement: { type: 'port' | 'cable'; id: string } | null;
@@ -96,8 +108,11 @@ export const useAppStore = create<AppState>((set, get) => ({
         'unknown': 0,
     },
     devices: [],
+    rooms: [], // Initialize rooms
+    layoutMode: false, // Initialize layoutMode
     selectedPortId: null,
     selectedDeviceId: null,
+    selectedRoomId: null,
     propertiesPanelDeviceId: null,
     isDraggingDevice: false,
     validationErrors: [],
@@ -186,14 +201,45 @@ export const useAppStore = create<AppState>((set, get) => ({
         devices = updateConnectionStates(devices);
 
         const errors = validateNetwork(devices);
-        set({ devices, step: 'sandbox', validationErrors: errors });
+        set({ devices, step: 'sandbox', validationErrors: errors, rooms: [], layoutMode: false }); // Reset rooms/mode on gen
     },
     updateDevicePosition: (id, position) =>
-        set((state) => ({
-            devices: state.devices.map((d) =>
-                d.id === id ? { ...d, position } : d
-            ),
-        })),
+        set((state) => {
+            // Check if device is inside any room
+            const [x, , z] = position;
+            let roomId: string | null = null;
+
+            // Simple point-in-rect check
+            // Room x,y is center? No, usually top-left or center. Let's assume Room properties are center-based or corner-based.
+            // Requirement says "Rooms are rectangles... x, y, w, h". 
+            // Let's implement x,y as CENTER for consistency with ThreeJS meshes if possible, 
+            // OR corner if easier. 
+            // Standard ThreeJS planes are centered. Let's assume x,y is center.
+
+            for (const room of state.rooms) {
+                const halfW = room.width / 2;
+                const halfH = room.height / 2;
+                // In 3D, Z is 'y' in 2D top-down plan typically.
+                // Room.x -> 3D.x
+                // Room.y -> 3D.z
+
+                if (
+                    x >= room.x - halfW &&
+                    x <= room.x + halfW &&
+                    z >= room.y - halfH &&
+                    z <= room.y + halfH
+                ) {
+                    roomId = room.id;
+                    break;
+                }
+            }
+
+            return {
+                devices: state.devices.map((d) =>
+                    d.id === id ? { ...d, position, roomId } : d
+                ),
+            };
+        }),
     updateDevice: (id, updates) =>
         set((state) => {
             let devices = state.devices.map((d) =>
@@ -359,7 +405,51 @@ export const useAppStore = create<AppState>((set, get) => ({
         }),
     selectPort: (portId) => set({ selectedPortId: portId }),
     selectDevice: (deviceId) => set({ selectedDeviceId: deviceId }),
+    selectRoom: (roomId) => set({ selectedRoomId: roomId }),
     setDraggingDevice: (dragging) => set({ isDraggingDevice: dragging }),
+
+    // Layout Mode Actions
+    toggleLayoutMode: () => set((state) => ({ layoutMode: !state.layoutMode })),
+    addRoom: (type) => set((state) => {
+        const id = `room-${Date.now()}`;
+        const defaultSizes = {
+            width: 10,
+            height: 10,
+        };
+        const defaultColors: Record<RoomType, string> = {
+            office: '#ef4444', // Red
+            kitchen: '#3b82f6', // Blue
+            dining: '#22c55e', // Green
+            bar: '#f97316', // Orange
+            storage: '#6b7280', // Gray
+        };
+
+        const newRoom: Room = {
+            id,
+            type,
+            name: `${type.charAt(0).toUpperCase() + type.slice(1)}`,
+            x: 0,
+            y: 0,
+            width: defaultSizes.width,
+            height: defaultSizes.height,
+            color: defaultColors[type]
+        };
+
+        return { rooms: [...state.rooms, newRoom], selectedRoomId: id };
+    }),
+    updateRoom: (id, updates) => set((state) => ({
+        rooms: state.rooms.map((r) => r.id === id ? { ...r, ...updates } : r)
+    })),
+    removeRoom: (id) => set((state) => ({
+        rooms: state.rooms.filter((r) => r.id !== id),
+        selectedRoomId: state.selectedRoomId === id ? null : state.selectedRoomId,
+        // Optional: clear roomId from devices in this room?
+        devices: state.devices.map(d => d.roomId === id ? { ...d, roomId: null } : d)
+    })),
+
+    // UI State for interaction
+    isDraggingRoom: false,
+    setDraggingRoom: (dragging: boolean) => set({ isDraggingRoom: dragging }),
 
     setHoveredElement: (element) => {
         set((state) => {
@@ -433,8 +523,11 @@ export const useAppStore = create<AppState>((set, get) => ({
     reset: () => set({
         step: 'wizard',
         devices: [],
+        rooms: [],
+        layoutMode: false,
         selectedPortId: null,
         selectedDeviceId: null,
+        selectedRoomId: null,
         propertiesPanelDeviceId: null,
         validationErrors: [],
         hoveredElement: null,
@@ -514,7 +607,7 @@ export const useAppStore = create<AppState>((set, get) => ({
                         : {}
                 ),
                 ...(
-                    ['orderpad', 'cakepop', 'elo-kds'].includes(type)
+                    isWifiCapable(type)
                         ? {
                             wireless: { ssid: '', password: '' },
                             connectionState: 'disconnected' as const
@@ -569,7 +662,7 @@ export const useAppStore = create<AppState>((set, get) => ({
             };
         }),
     exportConfig: () => {
-        const { settings, deviceCounts, devices, projectInfo } = get();
+        const { settings, deviceCounts, devices, rooms, projectInfo } = get();
         return {
             version: CURRENT_SCHEMA_VERSION, // Use schema version
             schemaVersion: CURRENT_SCHEMA_VERSION,
@@ -577,6 +670,7 @@ export const useAppStore = create<AppState>((set, get) => ({
             settings,
             deviceCounts,
             devices,
+            rooms, // Export Rooms
             projectInfo: {
                 ...projectInfo,
                 updatedAt: new Date().toISOString()
@@ -606,12 +700,15 @@ export const useAppStore = create<AppState>((set, get) => ({
                 settings: cleanData.settings,
                 deviceCounts: cleanData.deviceCounts,
                 devices: cleanData.devices,
+                rooms: cleanData.rooms || [], // Import Rooms
                 projectInfo: cleanData.projectInfo, // Load project info
                 step: 'sandbox',
                 validationErrors: errors,
                 selectedPortId: null,
                 selectedDeviceId: null,
+                selectedRoomId: null,
                 propertiesPanelDeviceId: null,
+                layoutMode: false,
             });
         } catch (error) {
             console.error('Unexpected error loading config:', error);

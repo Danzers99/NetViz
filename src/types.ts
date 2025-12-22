@@ -45,11 +45,25 @@ export interface Port {
     linkStatus?: 'up' | 'down' | 'negotiating'; // For visual link lights
 }
 
+export type RoomType = 'kitchen' | 'dining' | 'office' | 'bar' | 'storage';
+
+export interface Room {
+    id: string;
+    type: RoomType;
+    name: string;
+    x: number;
+    y: number;
+    width: number;
+    height: number;
+    color: string;
+}
+
 export interface Device {
     id: string;
     type: DeviceType;
     name: string;
     position: [number, number, number];
+    roomId?: string | null;
     ports: Port[];
     status: DeviceStatus;
     // Power state
@@ -98,4 +112,5 @@ export interface ConfigData {
     settings: Settings;
     deviceCounts: Record<DeviceType, number>;
     devices: Device[];
+    rooms: Room[]; // Added for Layout Mode
 }

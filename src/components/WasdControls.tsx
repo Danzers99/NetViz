@@ -33,7 +33,7 @@ export const WasdControls = () => {
             // State Protection
             const state = useAppStore.getState();
             if (state.isDraggingDevice) return;
-            if (state.selectedPortId !== null) return; // Port selection/connection mode
+            // if (state.selectedPortId !== null) return; // Allow movement during wiring
             if (state.propertiesPanelDeviceId !== null) return; // Properties panel open
 
             const key = e.key.toLowerCase();
@@ -79,7 +79,7 @@ export const WasdControls = () => {
 
         // Double check state in loop (optional, but safer for immediate stops)
         const appState = useAppStore.getState();
-        if (appState.isDraggingDevice || appState.selectedPortId !== null || appState.propertiesPanelDeviceId !== null) {
+        if (appState.isDraggingDevice || appState.propertiesPanelDeviceId !== null) {
             return;
         }
 
