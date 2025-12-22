@@ -9,6 +9,7 @@ import { APModel, InjectorModel, PowerOutletModel } from './models/AccessoryMode
 import { SwitchModel, POSModel, PrinterModel, CakePOPModel, OrderPadModel } from './models/EndpointModel';
 import { EloKDSModel } from './models/EloKDSModel';
 import { getPortPosition } from '../utils/layout';
+import { isWifiCapable } from '../utils/wifi';
 
 const DEVICE_COLORS: Record<string, string> = {
     // Infrastructure
@@ -175,11 +176,28 @@ export const DeviceNode = ({ device }: { device: Device }) => {
             {/* Label */}
             <Html position={[0, 1.2, 0]} center pointerEvents="none" zIndexRange={[0, 0]}>
                 <div className="bg-white/90 dark:bg-slate-800/90 text-slate-900 dark:text-slate-100 px-2 py-1 rounded text-xs whitespace-nowrap backdrop-blur-sm border border-slate-200 dark:border-slate-700 shadow-sm select-none font-mono flex items-center gap-2 transition-colors">
-                    <div className={`w-2 h-2 rounded-full ${device.status === 'online' ? 'bg-green-500 shadow-[0_0_8px_rgba(34,197,94,0.6)]' :
-                        device.status === 'booting' ? 'bg-amber-500 animate-pulse' :
-                            device.status === 'error' ? 'bg-red-500' :
-                                'bg-slate-500'
-                        }`} />
+                    <div className={`w-2 h-2 rounded-full ${(() => {
+                        if (device.status === 'error') return 'bg-red-500';
+                        if (device.status === 'booting') return 'bg-amber-500 animate-pulse';
+                        if (device.status === 'offline') return 'bg-slate-500';
+
+                        // Device is Powered On ('online')
+                        if (isWifiCapable(device.type)) {
+                            switch (device.connectionState) {
+                                case 'auth_failed': return 'bg-red-500';
+                                case 'disconnected': return 'bg-slate-400';
+                                case 'associating_wifi': return 'bg-amber-500 animate-pulse';
+                                case 'associated_no_ip':
+                                case 'associated_no_internet':
+                                    return 'bg-amber-500';
+                                case 'online': return 'bg-green-500 shadow-[0_0_8px_rgba(34,197,94,0.6)]';
+                                default: return 'bg-slate-400';
+                            }
+                        }
+
+                        // Wired/Infrastructure
+                        return 'bg-green-500 shadow-[0_0_8px_rgba(34,197,94,0.6)]';
+                    })()}`} />
                     {device.name}
                 </div>
             </Html>

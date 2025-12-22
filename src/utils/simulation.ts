@@ -133,6 +133,9 @@ export const updateLinkStatuses = (devices: Device[]): Device[] => {
 /**
  * Updates logical connection state (OrderPad Online vs No Internet).
  */
+/**
+ * Updates logical connection state (OrderPad Online vs No Internet).
+ */
 export const updateConnectionStates = (devices: Device[]): Device[] => {
     return devices.map(device => {
         // Only relevant for devices that care about 'connectionState' (Endpoints)
@@ -144,6 +147,91 @@ export const updateConnectionStates = (devices: Device[]): Device[] => {
             ...device,
             connectionState: newState
         };
+    });
+};
+
+/**
+ * Updates Wireless Association (Layer 2).
+ * Determines if wireless devices can associate with an AP based on SSID/Password.
+ * Sets associatedApId and authState.
+ */
+export const updateWirelessAssociation = (devices: Device[]): Device[] => {
+    return devices.map(device => {
+        const { wireless } = device;
+        if (!wireless || !wireless.ssid) {
+            // Not a wireless device or no SSID configured
+            // If it has wireless object, reset state
+            if (wireless) {
+                return {
+                    ...device,
+                    wireless: {
+                        ...wireless,
+                        associatedApId: null,
+                        authState: 'idle'
+                    }
+                };
+            }
+            return device;
+        }
+
+        // Find candidate APs
+        // An AP is a candidate if:
+        // 1. It is hosting WiFi (wifiHosting.enabled)
+        // 2. It is Powered On (status === 'online' or 'booting'?) -> Usually only Online APs transmit beacons.
+        // 3. It has a config matching the SSID.
+
+        // Note: We scan ALL devices to find APs.
+        const candidates = devices.filter(d =>
+            d.id !== device.id && // Not self
+            (d.status === 'online') && // AP must be online
+            d.wifiHosting?.enabled &&
+            d.wifiHosting.configs.some(c => c.ssid === wireless.ssid)
+        );
+
+        if (candidates.length === 0) {
+            // Network Not Found
+            return {
+                ...device,
+                wireless: {
+                    ...wireless,
+                    associatedApId: null,
+                    authState: 'idle' // or create a 'network_not_found' state? For now 'idle' or 'disconnected'
+                    // Requirement says: "If SSID not found: set NetworkNotFound".
+                    // But Device interface only has idle|associating|auth_failed|associated. 
+                    // Let's stick to idle or add 'idle' as 'not connected'.
+                }
+            };
+        }
+
+        // We have candidates. Check credentials.
+        // For simulation, we pick the first valid one, or if none valid, fail auth on the first one.
+
+        // Find if ANY candidate accepts the password
+        const validAP = candidates.find(d =>
+            d.wifiHosting!.configs.some(c => c.ssid === wireless.ssid && c.password === wireless.password)
+        );
+
+        if (validAP) {
+            // Association Success
+            return {
+                ...device,
+                wireless: {
+                    ...wireless,
+                    associatedApId: validAP.id,
+                    authState: 'associated'
+                }
+            };
+        } else {
+            // Association Failed (Found SSID but wrong password)
+            return {
+                ...device,
+                wireless: {
+                    ...wireless,
+                    associatedApId: null,
+                    authState: 'auth_failed'
+                }
+            };
+        }
     });
 };
 

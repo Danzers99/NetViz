@@ -74,7 +74,8 @@ export interface Device {
     wireless?: {
         ssid?: string;
         password?: string;
-        // isConnected is replaced by connectionState logic
+        associatedApId?: string | null;
+        authState?: 'idle' | 'associating' | 'auth_failed' | 'associated';
     };
     // Hosted WiFi for Routers/APs
     wifiHosting?: {

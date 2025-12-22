@@ -1,5 +1,5 @@
 import type { ConfigData, Settings } from '../types';
-import { propagatePowerState, updateLinkStatuses, updateConnectionStates } from './simulation';
+import { propagatePowerState, updateLinkStatuses, updateConnectionStates, updateWirelessAssociation } from './simulation';
 import { isWifiCapable } from './wifi';
 // import { validateNetwork } from '../validation';
 
@@ -244,6 +244,7 @@ export const validateAndSanitizeConfig = (data: ConfigData): { valid: boolean; e
 
     devices = propagatePowerState(devices);
     devices = updateLinkStatuses(devices);
+    devices = updateWirelessAssociation(devices);
     devices = updateConnectionStates(devices);
 
     // We don't fail load on network validation errors (loops etc), we just display them.

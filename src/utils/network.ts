@@ -40,38 +40,41 @@ export const checkUpstreamConnection = (device: Device, allDevices: Device[]): C
 
     // 2. Check Wireless Connection (Fallback)
     if (device.wireless?.ssid && isWifiCapable(device.type)) {
-        const ap = findBestAP(device, allDevices);
-        if (!ap) return 'disconnected';
 
-        const apState = checkUpstreamConnection(ap, allDevices);
+        // Use pre-calculated association state (Layer 2)
+        const { associatedApId, authState } = device.wireless;
 
-        if (apState === 'online') return 'online';
-        if (apState === 'associated_no_internet') return 'associated_no_internet';
-        if (apState === 'associated_no_ip') return 'associated_no_ip';
+        if (authState === 'auth_failed') {
+            return 'auth_failed';
+        }
 
-        if (ap.status !== 'online') return 'disconnected';
+        if (authState === 'associated' && associatedApId) {
+            const ap = allDevices.find(d => d.id === associatedApId);
 
-        return 'associated_no_internet';
+            // If AP is missing (deleted?) or offline
+            if (!ap) return 'disconnected';
+            if (ap.status !== 'online') return 'disconnected';
+
+            const apState = checkUpstreamConnection(ap, allDevices);
+
+            if (apState === 'online') return 'online';
+            if (apState === 'associated_no_internet') return 'associated_no_internet';
+            if (apState === 'associated_no_ip') return 'associated_no_ip'; // Should mean "Associated but No IP"
+
+            return 'associated_no_internet';
+        }
+
+        // associating or idle
+        if (authState === 'associating') return 'associating_wifi';
+
+        return 'disconnected';
     }
 
     // 3. No connections
     return 'disconnected';
 };
 
-const findBestAP = (client: Device, devices: Device[]): Device | undefined => {
-    const ssid = client.wireless?.ssid;
-    const password = client.wireless?.password;
-    if (!ssid) return undefined;
 
-    // Find online APs with matching config
-    const candidates = devices.filter(d =>
-        d.status === 'online' &&
-        d.wifiHosting?.configs.some(c => c.ssid === ssid && c.password === password)
-    );
-
-    // Return closest? For now just first.
-    return candidates[0];
-};
 
 const hasPathToISP = (device: Device, devices: Device[], visited: Set<string>): boolean => {
     if (visited.has(device.id)) return false;

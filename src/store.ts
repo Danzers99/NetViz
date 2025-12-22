@@ -2,7 +2,7 @@ import { create } from 'zustand';
 import { validateNetwork } from './validation';
 import { getDeviceDefinition } from './data/deviceDefinitions';
 import { isWifiCapable } from './utils/wifi';
-import { propagatePowerState, updateLinkStatuses, updateConnectionStates } from './utils/simulation';
+import { propagatePowerState, updateLinkStatuses, updateConnectionStates, updateWirelessAssociation } from './utils/simulation';
 import type { ValidationError } from './validation';
 import type { Device, DeviceType, Port, Settings, DeviceAction, ConfigData, ProjectInfo, Room, RoomType } from './types';
 import { migrateConfig, validateAndSanitizeConfig, CURRENT_SCHEMA_VERSION, loadSettingsFromStorage, saveSettingsToStorage } from './utils/persistence';
@@ -199,6 +199,7 @@ export const useAppStore = create<AppState>((set, get) => ({
         let devices = newDevices;
         devices = propagatePowerState(devices);
         devices = updateLinkStatuses(devices);
+        devices = updateWirelessAssociation(devices);
         devices = updateConnectionStates(devices);
 
         const errors = validateNetwork(devices);
@@ -250,6 +251,7 @@ export const useAppStore = create<AppState>((set, get) => ({
             // Run simulation
             devices = propagatePowerState(devices);
             devices = updateLinkStatuses(devices);
+            devices = updateWirelessAssociation(devices);
             devices = updateConnectionStates(devices);
 
             const errors = validateNetwork(devices);
@@ -340,6 +342,7 @@ export const useAppStore = create<AppState>((set, get) => ({
             // Run simulation
             devices = propagatePowerState(devices);
             devices = updateLinkStatuses(devices);
+            devices = updateWirelessAssociation(devices);
             devices = updateConnectionStates(devices);
 
             const errors = validateNetwork(devices);
@@ -398,6 +401,7 @@ export const useAppStore = create<AppState>((set, get) => ({
             // 3. Re-run Simulation
             devices = propagatePowerState(devices);
             devices = updateLinkStatuses(devices);
+            devices = updateWirelessAssociation(devices);
             devices = updateConnectionStates(devices);
 
             const errors = validateNetwork(devices);
@@ -622,7 +626,8 @@ export const useAppStore = create<AppState>((set, get) => ({
             // Run simulation/validation
             const updatedDevices = propagatePowerState(devices);
             const linkDevices = updateLinkStatuses(updatedDevices);
-            const finalDevices = updateConnectionStates(linkDevices);
+            const wifiDevices = updateWirelessAssociation(linkDevices);
+            const finalDevices = updateConnectionStates(wifiDevices);
             const errors = validateNetwork(finalDevices);
 
             return { devices: finalDevices, validationErrors: errors };
@@ -652,6 +657,7 @@ export const useAppStore = create<AppState>((set, get) => ({
             // Re-run simulation
             devices = propagatePowerState(devices);
             devices = updateLinkStatuses(devices);
+            devices = updateWirelessAssociation(devices);
             devices = updateConnectionStates(devices);
             const errors = validateNetwork(devices);
 
