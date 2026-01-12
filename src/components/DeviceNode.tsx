@@ -111,7 +111,6 @@ export const DeviceNode = ({ device }: { device: Device }) => {
             rafId: null
         };
 
-        setIsDragging(true);
         setDraggingDevice(true);
         // @ts-ignore
         e.target.setPointerCapture(e.pointerId);
@@ -127,7 +126,6 @@ export const DeviceNode = ({ device }: { device: Device }) => {
         }
 
         dragState.current.active = false;
-        setIsDragging(false);
         setDraggingDevice(false);
         // @ts-ignore
         e.target.releasePointerCapture(e.pointerId);
