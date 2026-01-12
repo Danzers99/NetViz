@@ -52,7 +52,6 @@ import { PortNode } from './PortNode';
 import { DeviceActionMenu } from './DeviceActionMenu';
 
 export const DeviceNode = ({ device }: { device: Device }) => {
-    const updateDevicePosition = useAppStore((state) => state.updateDevicePosition);
     const setDraggingDevice = useAppStore((state) => state.setDraggingDevice);
     const selectPort = useAppStore((state) => state.selectPort);
     const selectDevice = useAppStore((state) => state.selectDevice);
@@ -65,12 +64,53 @@ export const DeviceNode = ({ device }: { device: Device }) => {
     // Visibility
     const showDeviceNames = useAppStore((state) => state.settings.showDeviceNames);
 
-    const [isDragging, setIsDragging] = useState(false);
     const [showMenu, setShowMenu] = useState(false);
     const planeRef = useRef(new THREE.Plane(new THREE.Vector3(0, 1, 0), 0));
 
+    // Fix: Use ref to store drag state to avoid closure staleness and accumulation errors
+    const dragState = useRef<{
+        active: boolean;
+        startPoint: THREE.Vector3;
+        initialPositions: Record<string, [number, number, number]>;
+        rafId: number | null;
+    }>({
+        active: false,
+        startPoint: new THREE.Vector3(),
+        initialPositions: {},
+        rafId: null
+    });
+
     const handlePointerDown = (e: ThreeEvent<PointerEvent>) => {
         e.stopPropagation();
+
+        // 1. Calculate Anchor Point (World Space)
+        const point = new THREE.Vector3();
+        e.ray.intersectPlane(planeRef.current, point);
+
+        // 2. Capture Initial State
+        const state = useAppStore.getState();
+        const selectedIds = state.selectedDeviceIds;
+        const initialPositions: Record<string, [number, number, number]> = {};
+
+        // Determine which devices to move
+        // If clicking a selected device, move all selected.
+        // If clicking an unselected device, effectively we are starting a drag on just that one (unless Shift is handled elsewhere)
+        const isSelected = selectedIds.has(device.id);
+        const idsToMove = isSelected ? Array.from(selectedIds) : [device.id];
+
+        state.devices.forEach(d => {
+            if (idsToMove.includes(d.id)) {
+                initialPositions[d.id] = [...d.position];
+            }
+        });
+
+        dragState.current = {
+            active: true,
+            startPoint: point,
+            initialPositions,
+            rafId: null
+        };
+
         setIsDragging(true);
         setDraggingDevice(true);
         // @ts-ignore
@@ -79,6 +119,14 @@ export const DeviceNode = ({ device }: { device: Device }) => {
 
     const handlePointerUp = (e: ThreeEvent<PointerEvent>) => {
         e.stopPropagation();
+
+        // Cleanup RAF
+        if (dragState.current.rafId) {
+            cancelAnimationFrame(dragState.current.rafId);
+            dragState.current.rafId = null;
+        }
+
+        dragState.current.active = false;
         setIsDragging(false);
         setDraggingDevice(false);
         // @ts-ignore
@@ -86,48 +134,46 @@ export const DeviceNode = ({ device }: { device: Device }) => {
     };
 
     const handlePointerMove = (e: ThreeEvent<PointerEvent>) => {
-        if (isDragging) {
-            e.stopPropagation();
-            const point = new THREE.Vector3();
-            e.ray.intersectPlane(planeRef.current, point);
-            const snap = 0.5;
-            const x = Math.round(point.x / snap) * snap;
-            const z = Math.round(point.z / snap) * snap;
+        if (!dragState.current.active) return;
+        e.stopPropagation();
 
-            // Single Device Move (Standard) OR Multi-Select Move ?
-            // Logic: Calculate delta from original position? 
-            // Simplified: If this device is selected, move ALL selected devices by the delta from THIS device's position?
-            // Actually, simpler: Just set position for this device, BUT we need delta for others.
+        // Throttle with RAF
+        if (dragState.current.rafId) return;
 
-            // Current approach (simplest): If selected, move all.
-            const currentPos = new THREE.Vector3().fromArray(device.position);
-            const newPos = new THREE.Vector3(x, 0, z);
-            const delta = new THREE.Vector3().subVectors(newPos, currentPos);
+        // Calculate current point NOW (in event handler) to capture latest ray
+        const currentPoint = new THREE.Vector3();
+        e.ray.intersectPlane(planeRef.current, currentPoint);
 
-            // Optimization: If delta is zero (snapped), don't update
-            if (delta.lengthSq() < 0.001) return;
+        dragState.current.rafId = requestAnimationFrame(() => {
+            dragState.current.rafId = null;
+            if (!dragState.current.active) return;
 
-            if (selectedDeviceIds.has(device.id)) {
-                // Move ALL selected devices
-                const devices = useAppStore.getState().devices;
-                const updates: Record<string, [number, number, number]> = {};
+            // Calculate Delta
+            const delta = new THREE.Vector3().subVectors(currentPoint, dragState.current.startPoint);
 
-                selectedDeviceIds.forEach(id => {
-                    const d = devices.find(dev => dev.id === id);
-                    if (d) {
-                        updates[id] = [d.position[0] + delta.x, 0, d.position[2] + delta.z];
-                    }
-                });
+            // Snap Delta (Unified Snapping)
+            const SNAP = 0.5;
+            const snappedDelta = new THREE.Vector3(
+                Math.round(delta.x / SNAP) * SNAP,
+                0,
+                Math.round(delta.z / SNAP) * SNAP
+            );
 
-                // Add *this* device (ensure it snaps exactly to cursor regardless of float drift)
-                updates[device.id] = [x, 0, z];
+            // Optimization: Skip if no movement
+            if (snappedDelta.lengthSq() < 0.001) return;
 
-                updateDevicePositions(updates);
-            } else {
-                // Move just this one
-                updateDevicePosition(device.id, [x, 0, z]);
-            }
-        }
+            // Apply to ALL initial positions
+            const updates: Record<string, [number, number, number]> = {};
+            Object.entries(dragState.current.initialPositions).forEach(([id, initPos]) => {
+                updates[id] = [
+                    initPos[0] + snappedDelta.x,
+                    initPos[1],
+                    initPos[2] + snappedDelta.z
+                ];
+            });
+
+            updateDevicePositions(updates);
+        });
     };
 
     // Calculate port positions (handled by layout.ts now)
