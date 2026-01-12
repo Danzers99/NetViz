@@ -95,6 +95,8 @@ export interface Settings {
     showWarnings: boolean;
     compactWarnings: boolean;
     darkMode: boolean;
+    showDeviceNames?: boolean;
+    showRoomNames?: boolean;
 }
 
 

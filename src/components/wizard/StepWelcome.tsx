@@ -3,9 +3,10 @@ import { ArrowRight, Upload, PlaySquare } from 'lucide-react';
 interface StepWelcomeProps {
     onStartNew: () => void;
     onLoadPrevious: () => void;
+    onQuickStart: () => void;
 }
 
-export const StepWelcome = ({ onStartNew, onLoadPrevious }: StepWelcomeProps) => {
+export const StepWelcome = ({ onStartNew, onLoadPrevious, onQuickStart }: StepWelcomeProps) => {
     return (
         <div className="flex flex-col items-center justify-center h-full p-6 animate-in fade-in slide-in-from-bottom-4 duration-500">
             <h1 className="text-4xl font-bold text-slate-900 dark:text-white mb-2 text-center">
@@ -47,6 +48,25 @@ export const StepWelcome = ({ onStartNew, onLoadPrevious }: StepWelcomeProps) =>
                         Create a fresh network topology from scratch using our guided wizard.
                     </p>
                     <div className="absolute bottom-6 right-6 opacity-0 group-hover:opacity-100 transition-opacity text-orange-500">
+                        <ArrowRight size={24} />
+                    </div>
+                </button>
+
+                {/* Option C: Quick Start */}
+                <button
+                    onClick={onQuickStart}
+                    className="group relative flex flex-col items-center p-8 bg-white dark:bg-slate-800 rounded-2xl border-2 border-slate-200 dark:border-slate-700 hover:border-emerald-500 dark:hover:border-emerald-400 hover:shadow-xl transition-all duration-300 text-left md:col-span-2"
+                >
+                    <div className="mb-6 p-4 bg-emerald-50 dark:bg-emerald-900/20 text-emerald-600 dark:text-emerald-400 rounded-full group-hover:scale-110 transition-transform duration-300">
+                        <PlaySquare size={40} />
+                    </div>
+                    <h3 className="text-xl font-bold text-slate-900 dark:text-white mb-2">
+                        Quick Start Mode
+                    </h3>
+                    <p className="text-slate-500 dark:text-slate-400 text-center text-sm">
+                        Instantly load a pre-configured store location with default devices and settings.
+                    </p>
+                    <div className="absolute bottom-6 right-6 opacity-0 group-hover:opacity-100 transition-opacity text-emerald-500">
                         <ArrowRight size={24} />
                     </div>
                 </button>

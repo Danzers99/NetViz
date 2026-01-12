@@ -1,5 +1,5 @@
 import { Suspense, useRef, useEffect } from 'react';
-import { Canvas } from '@react-three/fiber';
+import { Canvas, useThree, useFrame } from '@react-three/fiber';
 import { OrbitControls, Grid, Environment } from '@react-three/drei';
 import { useAppStore } from '../store';
 import { DeviceNode } from './DeviceNode';
@@ -10,6 +10,38 @@ import { WasdControls } from './WasdControls';
 import { ViewportClamp } from './ViewportClamp';
 import { RoomLayer } from './RoomLayer';
 import { WireCancellationHandler } from './WireCancellationHandler';
+import { ControlsPanel } from './ControlsPanel';
+import * as THREE from 'three';
+
+// Component to track camera center on ground plane
+const CameraTracker = () => {
+    const { camera } = useThree();
+    const setCameraTarget = useAppStore(state => state.setCameraTarget);
+    const plane = new THREE.Plane(new THREE.Vector3(0, 1, 0), 0);
+    const raycaster = new THREE.Raycaster();
+    const screenCenter = new THREE.Vector2(0, 0); // Normalized center
+
+    useFrame(() => {
+        raycaster.setFromCamera(screenCenter, camera);
+        const target = new THREE.Vector3();
+        if (raycaster.ray.intersectPlane(plane, target)) {
+            // Snap to grid for cleanliness? No, raw is fine, addDevice handles snap if needed.
+            // But let's snap to 0.5
+            const snap = 0.5;
+            target.x = Math.round(target.x / snap) * snap;
+            target.z = Math.round(target.z / snap) * snap;
+
+            // Only update if changed significantly to avoid churn?
+            // Actually, store uses strict equality, array ref changes every time.
+            // We should check distance.
+            const current = useAppStore.getState().cameraTarget;
+            if (Math.abs(current[0] - target.x) > 0.1 || Math.abs(current[2] - target.z) > 0.1) {
+                setCameraTarget([target.x, 0, target.z]);
+            }
+        }
+    });
+    return null;
+};
 
 export const Sandbox = () => {
     const devices = useAppStore((state) => state.devices);
@@ -42,6 +74,7 @@ export const Sandbox = () => {
                     />
                     <OrbitControls ref={controlsRef} makeDefault />
                     <WasdControls />
+                    <CameraTracker />
                     <ViewportClamp />
                     <Environment preset="city" />
                     <WireCancellationHandler />
@@ -56,19 +89,7 @@ export const Sandbox = () => {
                 </Suspense>
             </Canvas>
 
-            <div className="absolute bottom-4 left-4 bg-white/90 dark:bg-slate-800/80 p-4 rounded-lg text-slate-700 dark:text-white backdrop-blur-sm border border-slate-200 dark:border-slate-700 pointer-events-none select-none transition-colors duration-300">
-                <h3 className="font-bold mb-2 text-orange-500 dark:text-orange-400">Controls</h3>
-                <ul className="text-sm space-y-1 text-slate-600 dark:text-slate-300">
-                    <li>• WASD to Move Camera</li>
-                    <li>• Left Click + Drag to Rotate</li>
-                    <li>• Right Click + Drag to Pan</li>
-                    <li>• Scroll to Zoom</li>
-                    <li>• Drag devices to move them</li>
-                    {!layoutMode && <li>• Click ports to connect them</li>}
-                    {!layoutMode && <li>• Right Click ports to disconnect</li>}
-                    {layoutMode && <li>• Click + Drag Room edges to resize</li>}
-                </ul>
-            </div>
+            <ControlsPanel />
 
             <Toolbox />
         </div>

@@ -23,6 +23,17 @@ interface AppState {
     isDraggingRoom: boolean;
     validationErrors: ValidationError[];
 
+    // Multi-select & Visibility
+    selectedDeviceIds: Set<string>;
+    cameraTarget: [number, number, number]; // Center of screen on ground plane
+
+    toggleShowDeviceNames: () => void;
+    toggleShowRoomNames: () => void;
+
+    // Enhanced Actions
+    setCameraTarget: (target: [number, number, number]) => void;
+    updateDevicePositions: (updates: Record<string, [number, number, number]>) => void; // Batch update
+
     setDeviceCount: (type: DeviceType, count: number) => void;
     setProjectInfo: (info: Partial<ProjectInfo>) => void;
     updateSettings: (settings: Partial<Settings>) => void;
@@ -33,6 +44,8 @@ interface AppState {
     disconnectPort: (portId: string) => void;
     selectPort: (portId: string | null) => void;
     selectDevice: (deviceId: string | null) => void;
+    toggleSelection: (deviceId: string) => void;
+    clearSelection: () => void;
     selectRoom: (roomId: string | null) => void; // Action
     setPropertiesPanelDeviceId: (deviceId: string | null) => void;
     setDraggingDevice: (dragging: boolean) => void;
@@ -82,7 +95,11 @@ export const generatePorts = (type: DeviceType, deviceId: string): Port[] => {
 
 export const useAppStore = create<AppState>((set, get) => ({
     step: 'wizard',
-    settings: loadSettingsFromStorage(),
+    settings: {
+        showDeviceNames: true,
+        showRoomNames: true,
+        ...loadSettingsFromStorage()
+    },
     projectInfo: {
         name: 'New Project',
         createdAt: new Date().toISOString()
@@ -120,7 +137,46 @@ export const useAppStore = create<AppState>((set, get) => ({
     selectedRoomId: null,
     propertiesPanelDeviceId: null,
     isDraggingDevice: false,
+    selectedDeviceIds: new Set(),
+    cameraTarget: [0, 0, 0],
     validationErrors: [],
+
+    toggleShowDeviceNames: () => set(state => {
+        const newSettings = { ...state.settings, showDeviceNames: !state.settings.showDeviceNames };
+        saveSettingsToStorage(newSettings);
+        return { settings: newSettings };
+    }),
+    toggleShowRoomNames: () => set(state => {
+        const newSettings = { ...state.settings, showRoomNames: !state.settings.showRoomNames };
+        saveSettingsToStorage(newSettings);
+        return { settings: newSettings };
+    }),
+
+    setCameraTarget: (target) => set({ cameraTarget: target }),
+
+    updateDevicePositions: (updates) => set(state => {
+        // Optimistic update for drag performance
+        return {
+            devices: state.devices.map(d => {
+                if (updates[d.id]) {
+                    // Re-calculate room for each modified device
+                    // This duplicates logic from updateDevicePosition but needed for batch
+                    const [x, , z] = updates[d.id];
+                    let roomId: string | null = null;
+                    for (const room of state.rooms) {
+                        const halfW = room.width / 2;
+                        const halfH = room.height / 2;
+                        if (x >= room.x - halfW && x <= room.x + halfW && z >= room.y - halfH && z <= room.y + halfH) {
+                            roomId = room.id;
+                            break;
+                        }
+                    }
+                    return { ...d, position: updates[d.id], roomId };
+                }
+                return d;
+            })
+        }
+    }),
 
     notification: null,
     setNotification: (notification) => set({ notification }),
@@ -416,7 +472,35 @@ export const useAppStore = create<AppState>((set, get) => ({
             return { devices, validationErrors: errors };
         }),
     selectPort: (portId) => set({ selectedPortId: portId }),
-    selectDevice: (deviceId) => set({ selectedDeviceId: deviceId }),
+    selectDevice: (deviceId) => set((state) => {
+        // Multi-select logic would go here if we passed a modifier flag to selectDevice
+        // For now, simpler implementation:
+        // If shift key usage is handled at component level, we might need a separate toggleSelection action
+        // But to keep interface clean, let's assume this is single select unless we add a new action.
+
+        // Revised plan: We need to support toggle.
+        // Actually, let's just make a new action or update this one if we can pass the modifier.
+        // Since we can't easily change signature in useAppStore without updating callsites...
+        // Let's rely on a separate 'toggleSelectDevice' or 'setSelection' if needed.
+        // BUT, for now, let's implement standard single select here and handle multi in components using a new action?
+        // No, let's just use `selectedDeviceId` as "Primary" and sync `selectedDeviceIds`.
+
+        const newSet = new Set<string>();
+        if (deviceId) newSet.add(deviceId);
+        return { selectedDeviceId: deviceId, selectedDeviceIds: newSet };
+    }),
+    toggleSelection: (deviceId: string) => set(state => {
+        const newSet = new Set(state.selectedDeviceIds);
+        if (newSet.has(deviceId)) {
+            newSet.delete(deviceId);
+        } else {
+            newSet.add(deviceId);
+        }
+        // Update primary selected ID to the last one added, or null
+        const last = Array.from(newSet).pop() || null;
+        return { selectedDeviceIds: newSet, selectedDeviceId: last };
+    }),
+    clearSelection: () => set({ selectedDeviceIds: new Set(), selectedDeviceId: null }),
     selectRoom: (roomId) => set({ selectedRoomId: roomId }),
     setDraggingDevice: (dragging) => set({ isDraggingDevice: dragging }),
 
@@ -598,7 +682,7 @@ export const useAppStore = create<AppState>((set, get) => ({
                 id,
                 type,
                 name: `${type.toUpperCase().replace('-', ' ')} ${nextIndex}`,
-                position: [0, 0, 0],
+                position: state.cameraTarget || [0, 0, 0], // Use camera target
                 ports: generatePorts(type, id),
                 status: (type === 'isp-modem' || type === 'power-outlet') ? 'online' : 'offline',
                 ...(

@@ -9,6 +9,9 @@ import { StepWireless } from './StepWireless';
 import { StepKDS } from './StepKDS';
 import { StepReview } from './StepReview';
 
+// @ts-ignore
+import quickStartData from '../../data/quickStartLocation.json';
+
 
 export const WizardContainer = () => {
     // Component State
@@ -21,6 +24,11 @@ export const WizardContainer = () => {
     const generateSandbox = useAppStore((state) => state.generateSandbox);
     const setDeviceCountStore = useAppStore((state) => state.setDeviceCount);
     const setProjectInfoStore = useAppStore((state) => state.setProjectInfo);
+    const importConfig = useAppStore((state) => state.importConfig);
+
+    // Quick Start Data
+    // see top level import
+
 
     // Force step 0 on mount/reset
     // useEffect(() => setCurrentStep(0), []); // Strict mode might double invoke, but 0 is safe.
@@ -39,6 +47,11 @@ export const WizardContainer = () => {
     const handleLoadClick = () => {
         const fileInput = document.getElementById('config-input');
         if (fileInput) fileInput.click();
+    };
+
+    const handleQuickStart = () => {
+        // @ts-ignore
+        importConfig(quickStartData);
     };
 
     const handleCreateSandbox = () => {
@@ -77,6 +90,7 @@ export const WizardContainer = () => {
             key="welcome"
             onStartNew={() => setCurrentStep(1)}
             onLoadPrevious={handleLoadClick}
+            onQuickStart={handleQuickStart}
         />,
         // 1: Location Name
         <StepLocation

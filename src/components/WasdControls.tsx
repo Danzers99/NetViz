@@ -37,6 +37,15 @@ export const WasdControls = () => {
             if (state.propertiesPanelDeviceId !== null) return; // Properties panel open
 
             const key = e.key.toLowerCase();
+
+            // Toggle Shortcuts
+            if (key === 'n') {
+                useAppStore.getState().toggleShowDeviceNames();
+            }
+            if (key === 'r' && e.shiftKey) {
+                useAppStore.getState().toggleShowRoomNames();
+            }
+
             if (key in keys.current) {
                 keys.current[key as keyof typeof keys.current] = true;
                 // Only prevent default for navigation keys to avoid scrolling/browser interactions
@@ -113,6 +122,8 @@ export const WasdControls = () => {
         // Vertical movement (Q/E) - World Up/Down
         if (e) moveVector.y += MOVEMENT_SPEED * delta;
         if (q) moveVector.y -= MOVEMENT_SPEED * delta;
+
+        // Toggles are handled in keydown, not useFrame
 
         // Apply movement to both Camera and OrbitControls Target (Panning)
         camera.position.add(moveVector);

@@ -56,7 +56,15 @@ export const DeviceNode = ({ device }: { device: Device }) => {
     const setDraggingDevice = useAppStore((state) => state.setDraggingDevice);
     const selectPort = useAppStore((state) => state.selectPort);
     const selectDevice = useAppStore((state) => state.selectDevice);
+    const toggleSelection = useAppStore((state) => state.toggleSelection);
+    const selectedDeviceIds = useAppStore((state) => state.selectedDeviceIds);
+    const selectedDeviceId = useAppStore((state) => state.selectedDeviceId);
+    const updateDevicePositions = useAppStore((state) => state.updateDevicePositions);
     const layoutMode = useAppStore((state) => state.layoutMode);
+
+    // Visibility
+    const showDeviceNames = useAppStore((state) => state.settings.showDeviceNames);
+
     const [isDragging, setIsDragging] = useState(false);
     const [showMenu, setShowMenu] = useState(false);
     const planeRef = useRef(new THREE.Plane(new THREE.Vector3(0, 1, 0), 0));
@@ -85,7 +93,40 @@ export const DeviceNode = ({ device }: { device: Device }) => {
             const snap = 0.5;
             const x = Math.round(point.x / snap) * snap;
             const z = Math.round(point.z / snap) * snap;
-            updateDevicePosition(device.id, [x, 0, z]);
+
+            // Single Device Move (Standard) OR Multi-Select Move ?
+            // Logic: Calculate delta from original position? 
+            // Simplified: If this device is selected, move ALL selected devices by the delta from THIS device's position?
+            // Actually, simpler: Just set position for this device, BUT we need delta for others.
+
+            // Current approach (simplest): If selected, move all.
+            const currentPos = new THREE.Vector3().fromArray(device.position);
+            const newPos = new THREE.Vector3(x, 0, z);
+            const delta = new THREE.Vector3().subVectors(newPos, currentPos);
+
+            // Optimization: If delta is zero (snapped), don't update
+            if (delta.lengthSq() < 0.001) return;
+
+            if (selectedDeviceIds.has(device.id)) {
+                // Move ALL selected devices
+                const devices = useAppStore.getState().devices;
+                const updates: Record<string, [number, number, number]> = {};
+
+                selectedDeviceIds.forEach(id => {
+                    const d = devices.find(dev => dev.id === id);
+                    if (d) {
+                        updates[id] = [d.position[0] + delta.x, 0, d.position[2] + delta.z];
+                    }
+                });
+
+                // Add *this* device (ensure it snaps exactly to cursor regardless of float drift)
+                updates[device.id] = [x, 0, z];
+
+                updateDevicePositions(updates);
+            } else {
+                // Move just this one
+                updateDevicePosition(device.id, [x, 0, z]);
+            }
         }
     };
 
@@ -100,7 +141,14 @@ export const DeviceNode = ({ device }: { device: Device }) => {
                 onPointerMove={handlePointerMove}
                 onClick={(e) => {
                     e.stopPropagation();
-                    selectDevice(device.id);
+                    if (e.shiftKey) {
+                        toggleSelection(device.id);
+                    } else {
+                        // If not shifting, select this one. 
+                        // Check if already selected? If dragging, we handled logic elsewhere.
+                        // Standard click: select only this one.
+                        selectDevice(device.id);
+                    }
                     selectPort(null);
                 }}
                 onPointerOver={() => { document.body.style.cursor = 'grab'; }}
@@ -174,33 +222,35 @@ export const DeviceNode = ({ device }: { device: Device }) => {
             )}
 
             {/* Label */}
-            <Html position={[0, 1.2, 0]} center pointerEvents="none" zIndexRange={[0, 0]}>
-                <div className="bg-white/90 dark:bg-slate-800/90 text-slate-900 dark:text-slate-100 px-2 py-1 rounded text-xs whitespace-nowrap backdrop-blur-sm border border-slate-200 dark:border-slate-700 shadow-sm select-none font-mono flex items-center gap-2 transition-colors">
-                    <div className={`w-2 h-2 rounded-full ${(() => {
-                        if (device.status === 'error') return 'bg-red-500';
-                        if (device.status === 'booting') return 'bg-amber-500 animate-pulse';
-                        if (device.status === 'offline') return 'bg-slate-500';
+            {showDeviceNames && (
+                <Html position={[0, 1.2, 0]} center pointerEvents="none" zIndexRange={[0, 0]}>
+                    <div className={`bg-white/90 dark:bg-slate-800/90 text-slate-900 dark:text-slate-100 px-2 py-1 rounded text-xs whitespace-nowrap backdrop-blur-sm border border-slate-200 dark:border-slate-700 shadow-sm select-none font-mono flex items-center gap-2 transition-colors ${selectedDeviceIds.has(device.id) ? 'ring-2 ring-blue-500' : ''}`}>
+                        <div className={`w-2 h-2 rounded-full ${(() => {
+                            if (device.status === 'error') return 'bg-red-500';
+                            if (device.status === 'booting') return 'bg-amber-500 animate-pulse';
+                            if (device.status === 'offline') return 'bg-slate-500';
 
-                        // Device is Powered On ('online')
-                        if (isWifiCapable(device.type)) {
-                            switch (device.connectionState) {
-                                case 'auth_failed': return 'bg-red-500';
-                                case 'disconnected': return 'bg-slate-400';
-                                case 'associating_wifi': return 'bg-amber-500 animate-pulse';
-                                case 'associated_no_ip':
-                                case 'associated_no_internet':
-                                    return 'bg-amber-500';
-                                case 'online': return 'bg-green-500 shadow-[0_0_8px_rgba(34,197,94,0.6)]';
-                                default: return 'bg-slate-400';
+                            // Device is Powered On ('online')
+                            if (isWifiCapable(device.type)) {
+                                switch (device.connectionState) {
+                                    case 'auth_failed': return 'bg-red-500';
+                                    case 'disconnected': return 'bg-slate-400';
+                                    case 'associating_wifi': return 'bg-amber-500 animate-pulse';
+                                    case 'associated_no_ip':
+                                    case 'associated_no_internet':
+                                        return 'bg-amber-500';
+                                    case 'online': return 'bg-green-500 shadow-[0_0_8px_rgba(34,197,94,0.6)]';
+                                    default: return 'bg-slate-400';
+                                }
                             }
-                        }
 
-                        // Wired/Infrastructure
-                        return 'bg-green-500 shadow-[0_0_8px_rgba(34,197,94,0.6)]';
-                    })()}`} />
-                    {device.name}
-                </div>
-            </Html>
+                            // Wired/Infrastructure
+                            return 'bg-green-500 shadow-[0_0_8px_rgba(34,197,94,0.6)]';
+                        })()}`} />
+                        {device.name}
+                    </div>
+                </Html>
+            )}
 
             {/* Ports */}
             <group>
@@ -212,6 +262,6 @@ export const DeviceNode = ({ device }: { device: Device }) => {
                     />
                 ))}
             </group>
-        </group>
+        </group >
     );
 };

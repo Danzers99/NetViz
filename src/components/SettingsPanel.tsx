@@ -25,6 +25,36 @@ export const SettingsPanel = ({ onClose }: { onClose: () => void }) => {
                     <h3 className="text-sm font-semibold text-slate-400 uppercase tracking-wider">Visuals</h3>
 
                     <div className="flex items-center justify-between">
+                        <div>
+                            <label className="text-slate-700 dark:text-slate-300 font-medium block">Device Names</label>
+                            <span className="text-[10px] text-slate-400 font-mono">Shortcut: N</span>
+                        </div>
+                        <button
+                            onClick={() => settings.showDeviceNames !== undefined && useAppStore.getState().toggleShowDeviceNames()}
+                            className={`w-12 h-6 rounded-full transition-colors relative ${settings.showDeviceNames ? 'bg-orange-500' : 'bg-slate-200 dark:bg-slate-600'
+                                }`}
+                        >
+                            <div className={`absolute top-1 w-4 h-4 bg-white rounded-full transition-transform ${settings.showDeviceNames ? 'left-7' : 'left-1'
+                                }`} />
+                        </button>
+                    </div>
+
+                    <div className="flex items-center justify-between">
+                        <div>
+                            <label className="text-slate-700 dark:text-slate-300 font-medium block">Room Names</label>
+                            <span className="text-[10px] text-slate-400 font-mono">Shortcut: Shift + R</span>
+                        </div>
+                        <button
+                            onClick={() => settings.showRoomNames !== undefined && useAppStore.getState().toggleShowRoomNames()}
+                            className={`w-12 h-6 rounded-full transition-colors relative ${settings.showRoomNames ? 'bg-orange-500' : 'bg-slate-200 dark:bg-slate-600'
+                                }`}
+                        >
+                            <div className={`absolute top-1 w-4 h-4 bg-white rounded-full transition-transform ${settings.showRoomNames ? 'left-7' : 'left-1'
+                                }`} />
+                        </button>
+                    </div>
+
+                    <div className="flex items-center justify-between">
                         <label className="text-slate-700 dark:text-slate-300 font-medium">Dark Mode</label>
                         <button
                             onClick={() => updateSettings({ darkMode: !settings.darkMode })}

@@ -105,11 +105,13 @@ export const RoomNode = ({ room }: { room: Room }) => {
             </lineSegments>
 
             {/* Label */}
-            <Html position={[-room.width / 2 + 0.5, 0.5, -room.height / 2 + 0.5]} center pointerEvents="none" zIndexRange={[0, 0]}>
-                <div className="text-xs font-bold text-slate-700 dark:text-slate-300 bg-white/50 dark:bg-black/50 px-1 rounded backdrop-blur-sm select-none">
-                    {room.name}
-                </div>
-            </Html>
+            {useAppStore(s => s.settings.showRoomNames) && (
+                <Html position={[-room.width / 2 + 0.5, 0.5, -room.height / 2 + 0.5]} center pointerEvents="none" zIndexRange={[0, 0]}>
+                    <div className="text-xs font-bold text-slate-700 dark:text-slate-300 bg-white/50 dark:bg-black/50 px-1 rounded backdrop-blur-sm select-none">
+                        {room.name}
+                    </div>
+                </Html>
+            )}
 
             {/* Context Menu */}
             {showMenu && (

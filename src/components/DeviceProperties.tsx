@@ -93,6 +93,82 @@ export const DeviceProperties = () => {
                         className="w-full p-2 border border-slate-200 dark:border-slate-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500 text-sm resize-none bg-white dark:bg-slate-700 text-slate-900 dark:text-white"
                     />
                 </div>
+                {/* Connections */}
+                <div className="space-y-2">
+                    <label className="text-sm font-semibold text-slate-700 dark:text-slate-300">Connections</label>
+                    <div className="p-2 bg-slate-50 dark:bg-slate-700 rounded-lg border border-slate-200 dark:border-slate-600 space-y-2">
+                        {/* List Existing Cable Connections */}
+                        {device.ports
+                            .filter(p => p.connectedTo)
+                            .map(p => {
+                                const connectedPortId = p.connectedTo!;
+                                const targetDevice = devices.find(d => d.ports.some(dp => dp.id === connectedPortId));
+                                return (
+                                    <div key={p.id} className="flex items-center justify-between text-xs bg-white dark:bg-slate-800 p-2 rounded border border-slate-200 dark:border-slate-600">
+                                        <div className="flex flex-col">
+                                            <span className="font-semibold text-slate-600 dark:text-slate-400">{p.name} ({p.role})</span>
+                                            <span className="text-slate-800 dark:text-slate-200">→ {targetDevice?.name}</span>
+                                        </div>
+                                        <button
+                                            onClick={() => useAppStore.getState().disconnectPort(p.id)}
+                                            className="text-red-500 hover:bg-red-50 p-1 rounded"
+                                        >
+                                            <X size={14} />
+                                        </button>
+                                    </div>
+                                );
+                            })
+                        }
+
+                        {/* Add New Connection */}
+                        <div className="pt-2 border-t border-slate-200 dark:border-slate-600">
+                            <label className="text-xs font-medium text-slate-500 mb-1 block">Connect to...</label>
+                            <select
+                                className="w-full text-xs p-2 rounded border border-slate-200 dark:border-slate-600 bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-200"
+                                onChange={(e) => {
+                                    const targetId = e.target.value;
+                                    if (!targetId) return;
+
+                                    const targetDevice = devices.find(d => d.id === targetId);
+                                    if (!targetDevice) return;
+
+                                    // Auto-find first available compatible ports
+                                    // Logic: If this device has free 'generic'/'lan'/'access' port, and target looks free...
+                                    // Simplified approach: Find FIRST null connectedTo port on Source that matches role logic?
+                                    // Or just find *any* free pair since validation handles the rest.
+
+                                    const sourcePort = device.ports.find(p => !p.connectedTo && p.role !== 'wan'); // Prefer LAN/Access
+                                    // Fallback
+                                    const sourcePortFinal = sourcePort || device.ports.find(p => !p.connectedTo);
+
+                                    const targetPort = targetDevice.ports.find(p => !p.connectedTo);
+
+                                    if (sourcePortFinal && targetPort) {
+                                        useAppStore.getState().connectPorts(sourcePortFinal.id, targetPort.id);
+                                        // Reset select
+                                        e.target.value = "";
+                                        // Explicit feedback
+                                        alert(`Connected ${sourcePortFinal.name} -> ${targetDevice.name} (${targetPort.name})`);
+                                    } else {
+                                        alert("No free ports available on one or both devices.");
+                                        e.target.value = "";
+                                    }
+                                }}
+                                value=""
+                            >
+                                <option value="">Select a device...</option>
+                                {devices
+                                    .filter(d => d.id !== device.id) // Can't connect to self
+                                    .sort((a, b) => a.name.localeCompare(b.name))
+                                    .map(d => (
+                                        <option key={d.id} value={d.id}>{d.name} ({d.type})</option>
+                                    ))
+                                }
+                            </select>
+                        </div>
+                    </div>
+                </div>
+
             </div>
 
             <div className="p-4 border-t border-slate-100 dark:border-slate-700 bg-slate-50 dark:bg-slate-800/50 text-xs text-slate-400 text-center">
