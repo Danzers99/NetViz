@@ -472,7 +472,7 @@ export const useAppStore = create<AppState>((set, get) => ({
             return { devices, validationErrors: errors };
         }),
     selectPort: (portId) => set({ selectedPortId: portId }),
-    selectDevice: (deviceId) => set((state) => {
+    selectDevice: (deviceId) => set(() => {
         // Multi-select logic would go here if we passed a modifier flag to selectDevice
         // For now, simpler implementation:
         // If shift key usage is handled at component level, we might need a separate toggleSelection action

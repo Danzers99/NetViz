@@ -58,7 +58,7 @@ export const DeviceNode = ({ device }: { device: Device }) => {
     const selectDevice = useAppStore((state) => state.selectDevice);
     const toggleSelection = useAppStore((state) => state.toggleSelection);
     const selectedDeviceIds = useAppStore((state) => state.selectedDeviceIds);
-    const selectedDeviceId = useAppStore((state) => state.selectedDeviceId);
+
     const updateDevicePositions = useAppStore((state) => state.updateDevicePositions);
     const layoutMode = useAppStore((state) => state.layoutMode);
 
