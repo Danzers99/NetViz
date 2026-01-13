@@ -40,7 +40,7 @@ export const saveSettingsToStorage = (settings: Settings) => {
     }
 };
 
-export const CURRENT_SCHEMA_VERSION = 3; // Incremented for Project Info
+export const CURRENT_SCHEMA_VERSION = 4; // Incremented for Revision History
 
 // Internal interface for legacy settings if needed, or just allow 'any'
 
@@ -69,9 +69,24 @@ export const migrateConfig = (data: LegacyConfigData): ConfigData => {
     if (migrated.schemaVersion < 3) {
         migrated = migrateV2toV3(migrated);
     }
+    if (migrated.schemaVersion < 4) {
+        migrated = migrateV3toV4(migrated);
+    }
 
     // Ensure final structure matches current types
     return migrated as ConfigData;
+};
+
+const migrateV3toV4 = (data: any): any => {
+    console.log('Migrating save from v3 to v4 (Adding Revision History)...');
+
+    // Initialize revisions array if missing
+    if (!data.revisions) {
+        data.revisions = [];
+    }
+
+    data.schemaVersion = 4;
+    return data;
 };
 
 const migrateV2toV3 = (data: any): any => {
@@ -256,7 +271,8 @@ export const validateAndSanitizeConfig = (data: ConfigData): { valid: boolean; e
         devices,
         // Ensure other fields exist
         settings: data.settings || { showWarnings: true, compactWarnings: false, darkMode: false },
-        deviceCounts: data.deviceCounts || {}
+        deviceCounts: data.deviceCounts || {},
+        revisions: data.revisions || []
     };
 
     return { valid: true, cleanedData };

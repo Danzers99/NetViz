@@ -97,9 +97,23 @@ export interface Settings {
     darkMode: boolean;
     showDeviceNames?: boolean;
     showRoomNames?: boolean;
+    userName?: string; // Identity for revisions
 }
 
+export interface RevisionStats {
+    deviceCount: number;
+    roomCount: number;
+    cableCount: number; // Inferred from connected ports
+}
 
+export interface Revision {
+    id: string;             // UUID v4
+    timestamp: number;      // Unix epoch
+    author: string;         // e.g. "David Morales"
+    summary: string;        // Auto-generated e.g. "Modified Layout"
+    manualNote?: string;    // Optional user comment
+    stats: RevisionStats;
+}
 
 export interface ProjectInfo {
     name: string;
@@ -108,12 +122,13 @@ export interface ProjectInfo {
 }
 
 export interface ConfigData {
-    version: number; // Legacy version field, kept for history
-    schemaVersion?: number; // New schema version for migrations
+    version: number; // Legacy
+    schemaVersion?: number; // New schema version
     timestamp: number;
-    projectInfo: ProjectInfo; // Added for V1.5.0
+    projectInfo: ProjectInfo;
     settings: Settings;
     deviceCounts: Record<DeviceType, number>;
     devices: Device[];
-    rooms: Room[]; // Added for Layout Mode
+    rooms: Room[];
+    revisions?: Revision[]; // History log (optional until migrated)
 }

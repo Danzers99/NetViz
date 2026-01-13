@@ -5,7 +5,7 @@ import { isWifiCapable } from './utils/wifi';
 import { propagatePowerState, updateLinkStatuses, updateConnectionStates, updateWirelessAssociation } from './utils/simulation';
 import { getRoomAt } from './utils/geometry';
 import type { ValidationError } from './validation';
-import type { Device, DeviceType, Port, Settings, DeviceAction, ConfigData, ProjectInfo, Room, RoomType } from './types';
+import type { Device, DeviceType, Port, Settings, DeviceAction, ConfigData, ProjectInfo, Room, RoomType, Revision } from './types';
 import { migrateConfig, validateAndSanitizeConfig, CURRENT_SCHEMA_VERSION, loadSettingsFromStorage, saveSettingsToStorage } from './utils/persistence';
 
 interface AppState {
@@ -15,6 +15,8 @@ interface AppState {
     deviceCounts: Record<DeviceType, number>;
     devices: Device[];
     rooms: Room[]; // Added for Layout Mode
+    revisions: Revision[];
+    sessionChanges: Set<string>; // Tracks categories of changes in current session
     layoutMode: boolean; // Toggle for Layout Mode
     selectedPortId: string | null;
     selectedDeviceId: string | null;
@@ -38,6 +40,9 @@ interface AppState {
     setDeviceCount: (type: DeviceType, count: number) => void;
     setProjectInfo: (info: Partial<ProjectInfo>) => void;
     updateSettings: (settings: Partial<Settings>) => void;
+    setUserName: (name: string) => void;
+    addSessionChange: (category: string) => void;
+    addRevision: (revision: Revision) => void;
     generateSandbox: () => void;
     updateDevicePosition: (id: string, position: [number, number, number]) => void;
     updateDevice: (id: string, updates: Partial<Device>) => void;
@@ -132,6 +137,8 @@ export const useAppStore = create<AppState>((set, get) => ({
     },
     devices: [],
     rooms: [], // Initialize rooms
+    revisions: [],
+    sessionChanges: new Set(),
     layoutMode: false, // Initialize layoutMode
     selectedPortId: null,
     selectedDeviceId: null,
@@ -155,8 +162,26 @@ export const useAppStore = create<AppState>((set, get) => ({
 
     setCameraTarget: (target) => set({ cameraTarget: target }),
 
+    setUserName: (name) => set(state => {
+        const newSettings = { ...state.settings, userName: name };
+        saveSettingsToStorage(newSettings);
+        return { settings: newSettings };
+    }),
+
+    addSessionChange: (category) => set(state => {
+        const newSet = new Set(state.sessionChanges);
+        newSet.add(category);
+        return { sessionChanges: newSet };
+    }),
+
+    addRevision: (revision) => set(state => ({
+        revisions: [...state.revisions, revision],
+        sessionChanges: new Set() // Clear session changes after commit
+    })),
+
     updateDevicePositions: (updates) => set(state => {
         // Optimistic update for drag performance
+        state.addSessionChange('Layout/Floorplan');
         return {
             devices: state.devices.map(d => {
                 if (updates[d.id]) {
@@ -186,16 +211,21 @@ export const useAppStore = create<AppState>((set, get) => ({
             deviceCounts: { ...state.deviceCounts, [type]: count },
         })),
     setProjectInfo: (info) =>
-        set((state) => ({
-            projectInfo: { ...state.projectInfo, ...info }
-        })),
+        set((state) => {
+            state.addSessionChange('Project Settings');
+            return {
+                projectInfo: { ...state.projectInfo, ...info }
+            };
+        }),
     updateSettings: (newSettings) =>
         set((state) => {
             const updatedSettings = { ...state.settings, ...newSettings };
             saveSettingsToStorage(updatedSettings);
+            state.addSessionChange('Settings');
             return { settings: updatedSettings };
         }),
     generateSandbox: () => {
+        get().addSessionChange('New Sandbox Created');
         const { deviceCounts } = get();
         const newDevices: Device[] = [];
         let idCounter = 1;
@@ -263,6 +293,7 @@ export const useAppStore = create<AppState>((set, get) => ({
     },
     updateDevicePosition: (id, position) =>
         set((state) => {
+            state.addSessionChange('Layout/Floorplan');
             // Check if device is inside any room
             const [x, , z] = position;
             const room = getRoomAt(x, z, state.rooms);
@@ -276,6 +307,7 @@ export const useAppStore = create<AppState>((set, get) => ({
         }),
     updateDevice: (id, updates) =>
         set((state) => {
+            state.addSessionChange('Device Configuration');
             let devices = state.devices.map((d) =>
                 d.id === id ? { ...d, ...updates } : d
             );
@@ -292,6 +324,7 @@ export const useAppStore = create<AppState>((set, get) => ({
         }),
     connectPorts: (portIdA, portIdB) =>
         set((state) => {
+            state.addSessionChange('Cabling/Connectivity');
             // Create deep copies to ensure React detects changes
             let devices = state.devices.map(device => ({
                 ...device,
@@ -382,6 +415,7 @@ export const useAppStore = create<AppState>((set, get) => ({
         }),
     disconnectPort: (portId) =>
         set((state) => {
+            state.addSessionChange('Cabling/Connectivity');
             // 1. Identify valid targets first without mutating anything
             let targetDeviceId: string | null = null;
             let targetPortId: string | null = null;
@@ -476,6 +510,7 @@ export const useAppStore = create<AppState>((set, get) => ({
     // Layout Mode Actions
     toggleLayoutMode: () => set((state) => ({ layoutMode: !state.layoutMode })),
     addRoom: (type) => set((state) => {
+        state.addSessionChange('Layout/Floorplan');
         const id = `room-${Date.now()}`;
         const defaultSizes = {
             width: 10,
@@ -502,15 +537,21 @@ export const useAppStore = create<AppState>((set, get) => ({
 
         return { rooms: [...state.rooms, newRoom], selectedRoomId: id };
     }),
-    updateRoom: (id, updates) => set((state) => ({
-        rooms: state.rooms.map((r) => r.id === id ? { ...r, ...updates } : r)
-    })),
-    removeRoom: (id) => set((state) => ({
-        rooms: state.rooms.filter((r) => r.id !== id),
-        selectedRoomId: state.selectedRoomId === id ? null : state.selectedRoomId,
-        // Optional: clear roomId from devices in this room?
-        devices: state.devices.map(d => d.roomId === id ? { ...d, roomId: null } : d)
-    })),
+    updateRoom: (id, updates) => set((state) => {
+        state.addSessionChange('Layout/Floorplan');
+        return {
+            rooms: state.rooms.map((r) => r.id === id ? { ...r, ...updates } : r)
+        };
+    }),
+    removeRoom: (id) => set((state) => {
+        state.addSessionChange('Layout/Floorplan');
+        return {
+            rooms: state.rooms.filter((r) => r.id !== id),
+            selectedRoomId: state.selectedRoomId === id ? null : state.selectedRoomId,
+            // Optional: clear roomId from devices in this room?
+            devices: state.devices.map(d => d.roomId === id ? { ...d, roomId: null } : d)
+        };
+    }),
 
     // UI State for interaction
     isDraggingRoom: false,
@@ -597,6 +638,8 @@ export const useAppStore = create<AppState>((set, get) => ({
         step: 'wizard',
         devices: [],
         rooms: [],
+        revisions: [],
+        sessionChanges: new Set(),
         layoutMode: false,
         selectedPortId: null,
         selectedDeviceId: null,
@@ -651,6 +694,7 @@ export const useAppStore = create<AppState>((set, get) => ({
     },
     addDevice: (type) =>
         set((state) => {
+            state.addSessionChange('Device Inventory');
             const existingOfType = state.devices.filter((d) => d.type === type);
             const nextIndex = existingOfType.length + 1;
             const id = `${type}-${Date.now()}`;
@@ -702,6 +746,7 @@ export const useAppStore = create<AppState>((set, get) => ({
         }),
     removeDevice: (deviceId) =>
         set((state) => {
+            state.addSessionChange('Device Inventory');
             const deviceToRemove = state.devices.find((d) => d.id === deviceId);
             if (!deviceToRemove) return {};
 
@@ -737,7 +782,7 @@ export const useAppStore = create<AppState>((set, get) => ({
             };
         }),
     exportConfig: () => {
-        const { settings, deviceCounts, devices, rooms, projectInfo } = get();
+        const { settings, deviceCounts, devices, rooms, projectInfo, revisions } = get();
         return {
             version: CURRENT_SCHEMA_VERSION, // Use schema version
             schemaVersion: CURRENT_SCHEMA_VERSION,
@@ -746,6 +791,7 @@ export const useAppStore = create<AppState>((set, get) => ({
             deviceCounts,
             devices,
             rooms, // Export Rooms
+            revisions: revisions || [],
             projectInfo: {
                 ...projectInfo,
                 updatedAt: new Date().toISOString()
@@ -776,6 +822,7 @@ export const useAppStore = create<AppState>((set, get) => ({
                 deviceCounts: cleanData.deviceCounts,
                 devices: cleanData.devices,
                 rooms: cleanData.rooms || [], // Import Rooms
+                revisions: cleanData.revisions || [],
                 projectInfo: cleanData.projectInfo, // Load project info
                 step: 'sandbox',
                 validationErrors: errors,

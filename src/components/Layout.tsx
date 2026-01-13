@@ -1,6 +1,6 @@
 import { useState, useRef, type ReactNode } from 'react';
 import { useAppStore } from '../store';
-import { LayoutGrid, Settings, HelpCircle, RotateCcw, Download, Upload } from 'lucide-react';
+import { LayoutGrid, Settings, HelpCircle, RotateCcw, Download, Upload, History } from 'lucide-react';
 import { Alerts } from './Alerts';
 import { SettingsPanel } from './SettingsPanel';
 import { DeviceProperties } from './DeviceProperties';
@@ -8,6 +8,10 @@ import { SelectedPortIndicator } from './SelectedPortIndicator';
 import { RuntimeNotifications } from './RuntimeNotifications';
 import { Toast } from './Toast';
 import { useEffect } from 'react';
+import { SaveDialog } from './SaveDialog';
+import { HistoryPanel } from './HistoryPanel';
+import { generateUUID } from '../utils/uuid';
+import type { Revision } from '../types';
 
 
 export const Layout = ({ children }: { children: ReactNode }) => {
@@ -16,18 +20,46 @@ export const Layout = ({ children }: { children: ReactNode }) => {
     const exportConfig = useAppStore((state) => state.exportConfig);
     const importConfig = useAppStore((state) => state.importConfig);
     const devices = useAppStore((state) => state.devices);
+    const rooms = useAppStore((state) => state.rooms);
+    const addRevision = useAppStore((state) => state.addRevision);
     const darkMode = useAppStore((state) => state.settings.darkMode);
+
     const [showSettings, setShowSettings] = useState(false);
+    const [showHistory, setShowHistory] = useState(false);
+    const [showSaveDialog, setShowSaveDialog] = useState(false);
+    const [pendingAutoSummary, setPendingAutoSummary] = useState('');
 
     const fileInputRef = useRef<HTMLInputElement>(null);
     const lastSavedDevicesRef = useRef<string>('');
 
-    const handleSave = () => {
+    const executeSave = (manualNote: string) => {
+        // Get fresh state to ensure we have the latest userName after the prompt
+        const currentSettings = useAppStore.getState().settings;
+        // Changes are captured in pendingAutoSummary state at time of click
+
+        const stats = {
+            deviceCount: devices.length,
+            roomCount: rooms.length,
+            cableCount: devices.reduce((acc, d) => acc + d.ports.filter(p => p.connectedTo).length, 0) / 2 // Divide by 2 as cables are bidirectional
+        };
+
+        const revision: Revision = {
+            id: generateUUID(),
+            timestamp: Date.now(),
+            author: currentSettings.userName || 'Unknown User',
+            summary: pendingAutoSummary,
+            manualNote: manualNote, // Include the note
+            stats
+        };
+
+        // 2. Commit Revision to Store
+        addRevision(revision);
+
+        // 3. Export (now includes the new revision)
         const config = exportConfig();
         const projectName = config.projectInfo.name || "Untitled_Location";
         const sanitizedName = projectName.replace(/[^a-zA-Z0-9-_]/g, '_').substring(0, 40);
         const dateStr = new Date().toISOString().slice(0, 10);
-        // Add time HHmm for uniqueness if needed, but per requirements: NetViz_<LocationName>_<YYYY-MM-DD>_<HHmm>
         const now = new Date();
         const timeStr = `${now.getHours().toString().padStart(2, '0')}${now.getMinutes().toString().padStart(2, '0')}`;
 
@@ -45,6 +77,18 @@ export const Layout = ({ children }: { children: ReactNode }) => {
 
         // Update baseline for unsaved changes
         lastSavedDevicesRef.current = JSON.stringify(config.devices);
+    };
+
+    const handleSaveClick = () => {
+        // Calculate summary immediately when clicking save
+        const currentSessionChanges = useAppStore.getState().sessionChanges;
+        const summaryArr = Array.from(currentSessionChanges);
+        const summary = summaryArr.length > 0
+            ? summaryArr.join(', ') + " modified"
+            : "No significant changes detected";
+
+        setPendingAutoSummary(summary);
+        setShowSaveDialog(true);
     };
 
     const handleLoadClick = () => {
@@ -105,11 +149,22 @@ export const Layout = ({ children }: { children: ReactNode }) => {
 
     return (
         <div className="flex h-screen bg-slate-50 dark:bg-slate-900 text-slate-900 dark:text-slate-100 font-sans relative overflow-hidden">
-
-
             <Toast />
+            <SaveDialog
+                isOpen={showSaveDialog}
+                autoSummary={pendingAutoSummary}
+                onSave={(note) => {
+                    setShowSaveDialog(false);
+                    // Use timeout to allow UI to clear slightly before heavy export work? 
+                    // Not strictly necessary but feels better. 
+                    // IMPORTANT: Pass note to executeSave
+                    setTimeout(() => executeSave(note), 0);
+                }}
+                onCancel={() => setShowSaveDialog(false)}
+            />
 
             {showSettings && <SettingsPanel onClose={() => setShowSettings(false)} />}
+            {showHistory && <HistoryPanel onClose={() => setShowHistory(false)} />}
 
             <DeviceProperties />
 
@@ -136,13 +191,22 @@ export const Layout = ({ children }: { children: ReactNode }) => {
                         <Settings size={20} />
                         <span className="hidden md:block">Settings</span>
                     </button>
+
+                    <button
+                        onClick={() => setShowHistory(!showHistory)}
+                        className={`w-full flex items-center gap-3 px-3 py-2 rounded-lg transition-colors font-medium ${showHistory ? 'bg-slate-100 dark:bg-slate-700 text-slate-900 dark:text-slate-100' : 'hover:bg-slate-100 dark:hover:bg-slate-700'
+                            }`}
+                    >
+                        <History size={20} />
+                        <span className="hidden md:block">History</span>
+                    </button>
                 </nav>
 
                 <div className="p-2 border-t border-slate-200 dark:border-slate-700 space-y-1">
                     {step === 'sandbox' && (
                         <>
                             <button
-                                onClick={handleSave}
+                                onClick={handleSaveClick}
                                 className="w-full flex items-center gap-3 px-3 py-2 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-700 transition-colors font-medium"
                                 title="Save Configuration"
                             >
