@@ -62,7 +62,10 @@ export const RoomNode = ({ room }: { room: Room }) => {
             {/* Room Floor */}
             <mesh
                 rotation={[-Math.PI / 2, 0, 0]}
-                onPointerDown={handlePointerDown}
+                onPointerDown={(e) => {
+                    if (!layoutMode) return;
+                    handlePointerDown(e);
+                }}
                 onPointerUp={handlePointerUp}
                 onPointerMove={handlePointerMove}
                 onContextMenu={handleContextMenu}
