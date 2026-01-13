@@ -1,5 +1,4 @@
 import { useState, useRef } from 'react';
-import type { ThreeEvent } from '@react-three/fiber';
 import { Html } from '@react-three/drei';
 import { useAppStore } from '../store';
 import type { Device } from '../types';

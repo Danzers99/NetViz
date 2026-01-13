@@ -41,7 +41,7 @@ export const RoomNode = ({ room }: { room: Room }) => {
             const newZ = startPosRef.current[1] + delta.z; // Z is Y in logic
             updateRoom(room.id, { x: newX, y: newZ });
         },
-        onDragEnd: (e) => {
+        onDragEnd: () => {
             setIsDragging(false);
             setDraggingRoom(false);
         }

@@ -14,10 +14,15 @@ export const Cables = () => {
         const processedPorts = new Set<string>();
 
         // Create a Map for O(1) lookup
-        const deviceMap = new Map(devices.map(d => [d.id, d]));
+        const portLookup = new Map<string, { device: Device; index: number }>();
+        devices.forEach(d => {
+            d.ports.forEach((p, i) => {
+                portLookup.set(p.id, { device: d, index: i });
+            });
+        });
 
         devices.forEach((device) => {
-            device.ports.forEach((port, index) => {
+            device.ports.forEach((port) => {
                 // Determine Connection ID (Cable ID)
                 // Use a consistent ID generation regardless of direction (e.g. sort IDs)
                 // But existing logic uses `processedPorts` to dedupe.
@@ -58,13 +63,7 @@ export const Cables = () => {
             });
         });
 
-        // ACTUALLY IMPLEMENTATION:
-        const portLookup = new Map<string, { device: Device; index: number }>();
-        devices.forEach(d => {
-            d.ports.forEach((p, i) => {
-                portLookup.set(p.id, { device: d, index: i });
-            });
-        });
+
 
         devices.forEach((device) => {
             device.ports.forEach((port, index) => {
