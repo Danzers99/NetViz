@@ -24,8 +24,11 @@ export const Layout = ({ children }: { children: ReactNode }) => {
     const addRevision = useAppStore((state) => state.addRevision);
     const darkMode = useAppStore((state) => state.settings.darkMode);
 
+    const isHistoryOpen = useAppStore((state) => state.isHistoryOpen);
+    const setHistoryOpen = useAppStore((state) => state.setHistoryOpen);
+
     const [showSettings, setShowSettings] = useState(false);
-    const [showHistory, setShowHistory] = useState(false);
+    // showHistory moved to global store
     const [showSaveDialog, setShowSaveDialog] = useState(false);
     const [pendingAutoSummary, setPendingAutoSummary] = useState('');
 
@@ -147,6 +150,13 @@ export const Layout = ({ children }: { children: ReactNode }) => {
         return () => window.removeEventListener('beforeunload', handleBeforeUnload);
     }, [devices, step]);
 
+    // Close history if we leave sandbox mode
+    useEffect(() => {
+        if (step !== 'sandbox' && isHistoryOpen) {
+            setHistoryOpen(false);
+        }
+    }, [step, isHistoryOpen, setHistoryOpen]);
+
     return (
         <div className="flex h-screen bg-slate-50 dark:bg-slate-900 text-slate-900 dark:text-slate-100 font-sans relative overflow-hidden">
             <Toast />
@@ -164,7 +174,7 @@ export const Layout = ({ children }: { children: ReactNode }) => {
             />
 
             {showSettings && <SettingsPanel onClose={() => setShowSettings(false)} />}
-            {showHistory && <HistoryPanel onClose={() => setShowHistory(false)} />}
+            {isHistoryOpen && step === 'sandbox' && <HistoryPanel onClose={() => setHistoryOpen(false)} />}
 
             <DeviceProperties />
 
@@ -192,14 +202,16 @@ export const Layout = ({ children }: { children: ReactNode }) => {
                         <span className="hidden md:block">Settings</span>
                     </button>
 
-                    <button
-                        onClick={() => setShowHistory(!showHistory)}
-                        className={`w-full flex items-center gap-3 px-3 py-2 rounded-lg transition-colors font-medium ${showHistory ? 'bg-slate-100 dark:bg-slate-700 text-slate-900 dark:text-slate-100' : 'hover:bg-slate-100 dark:hover:bg-slate-700'
-                            }`}
-                    >
-                        <History size={20} />
-                        <span className="hidden md:block">History</span>
-                    </button>
+                    {step === 'sandbox' && (
+                        <button
+                            onClick={() => setHistoryOpen(!isHistoryOpen)}
+                            className={`w-full flex items-center gap-3 px-3 py-2 rounded-lg transition-colors font-medium ${isHistoryOpen ? 'bg-slate-100 dark:bg-slate-700 text-slate-900 dark:text-slate-100' : 'hover:bg-slate-100 dark:hover:bg-slate-700'
+                                }`}
+                        >
+                            <History size={20} />
+                            <span className="hidden md:block">History</span>
+                        </button>
+                    )}
                 </nav>
 
                 <div className="p-2 border-t border-slate-200 dark:border-slate-700 space-y-1">

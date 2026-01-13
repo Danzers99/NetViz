@@ -83,6 +83,10 @@ interface AppState {
     notification: { message: string; type: 'error' | 'success' | 'info' } | null;
     setNotification: (notification: { message: string; type: 'error' | 'success' | 'info' } | null) => void;
 
+    // Right Panel State (Mutually Exclusive)
+    isHistoryOpen: boolean;
+    setHistoryOpen: (open: boolean) => void;
+
     // Camera
     cameraResetTrigger: number;
     triggerCameraReset: () => void;
@@ -139,6 +143,7 @@ export const useAppStore = create<AppState>((set, get) => ({
     rooms: [], // Initialize rooms
     revisions: [],
     sessionChanges: new Set(),
+    isHistoryOpen: false,
     layoutMode: false, // Initialize layoutMode
     selectedPortId: null,
     selectedDeviceId: null,
@@ -632,7 +637,17 @@ export const useAppStore = create<AppState>((set, get) => ({
         });
     },
 
-    setPropertiesPanelDeviceId: (id: string | null) => set({ propertiesPanelDeviceId: id }),
+    setHistoryOpen: (open) => set({
+        isHistoryOpen: open,
+        // If opening history, close properties
+        ...(open ? { propertiesPanelDeviceId: null } : {})
+    }),
+
+    setPropertiesPanelDeviceId: (id: string | null) => set({
+        propertiesPanelDeviceId: id,
+        // If opening properties, close history
+        ...(id ? { isHistoryOpen: false } : {})
+    }),
 
     reset: () => set({
         step: 'wizard',
