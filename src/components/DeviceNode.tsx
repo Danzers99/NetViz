@@ -3,11 +3,11 @@ import type { ThreeEvent } from '@react-three/fiber';
 import { Html } from '@react-three/drei';
 import { useAppStore } from '../store';
 import type { Device } from '../types';
-import * as THREE from 'three';
 import { RouterModel, ModemModel } from './models/RouterModel';
 import { APModel, InjectorModel, PowerOutletModel } from './models/AccessoryModel';
 import { SwitchModel, POSModel, PrinterModel, CakePOPModel, OrderPadModel } from './models/EndpointModel';
 import { EloKDSModel } from './models/EloKDSModel';
+import { useDraggable } from '../hooks/useDraggable';
 import { getPortPosition } from '../utils/layout';
 import { isWifiCapable } from '../utils/wifi';
 
@@ -65,114 +65,47 @@ export const DeviceNode = ({ device }: { device: Device }) => {
     const showDeviceNames = useAppStore((state) => state.settings.showDeviceNames);
 
     const [showMenu, setShowMenu] = useState(false);
-    const planeRef = useRef(new THREE.Plane(new THREE.Vector3(0, 1, 0), 0));
+    // Drag Logic using centralized hook
+    const initialPositionsRef = useRef<Record<string, [number, number, number]>>({});
 
-    // Fix: Use ref to store drag state to avoid closure staleness and accumulation errors
-    const dragState = useRef<{
-        active: boolean;
-        startPoint: THREE.Vector3;
-        initialPositions: Record<string, [number, number, number]>;
-        rafId: number | null;
-    }>({
-        active: false,
-        startPoint: new THREE.Vector3(),
-        initialPositions: {},
-        rafId: null
-    });
+    const { handlePointerDown, handlePointerUp, handlePointerMove } = useDraggable({
+        snap: 0.5,
+        onDragStart: (e) => {
+            e.stopPropagation();
+            setDraggingDevice(true);
 
-    const handlePointerDown = (e: ThreeEvent<PointerEvent>) => {
-        e.stopPropagation();
+            // Capture initial positions for ALL selected items (or just this one)
+            const state = useAppStore.getState();
+            const selectedIds = state.selectedDeviceIds;
+            const initialPositions: Record<string, [number, number, number]> = {};
 
-        // 1. Calculate Anchor Point (World Space)
-        const point = new THREE.Vector3();
-        e.ray.intersectPlane(planeRef.current, point);
+            const isSelected = selectedIds.has(device.id);
+            const idsToMove = isSelected ? Array.from(selectedIds) : [device.id];
 
-        // 2. Capture Initial State
-        const state = useAppStore.getState();
-        const selectedIds = state.selectedDeviceIds;
-        const initialPositions: Record<string, [number, number, number]> = {};
-
-        // Determine which devices to move
-        // If clicking a selected device, move all selected.
-        // If clicking an unselected device, effectively we are starting a drag on just that one (unless Shift is handled elsewhere)
-        const isSelected = selectedIds.has(device.id);
-        const idsToMove = isSelected ? Array.from(selectedIds) : [device.id];
-
-        state.devices.forEach(d => {
-            if (idsToMove.includes(d.id)) {
-                initialPositions[d.id] = [...d.position];
-            }
-        });
-
-        dragState.current = {
-            active: true,
-            startPoint: point,
-            initialPositions,
-            rafId: null
-        };
-
-        setDraggingDevice(true);
-        // @ts-ignore
-        e.target.setPointerCapture(e.pointerId);
-    };
-
-    const handlePointerUp = (e: ThreeEvent<PointerEvent>) => {
-        e.stopPropagation();
-
-        // Cleanup RAF
-        if (dragState.current.rafId) {
-            cancelAnimationFrame(dragState.current.rafId);
-            dragState.current.rafId = null;
-        }
-
-        dragState.current.active = false;
-        setDraggingDevice(false);
-        // @ts-ignore
-        e.target.releasePointerCapture(e.pointerId);
-    };
-
-    const handlePointerMove = (e: ThreeEvent<PointerEvent>) => {
-        if (!dragState.current.active) return;
-        e.stopPropagation();
-
-        // Throttle with RAF
-        if (dragState.current.rafId) return;
-
-        // Calculate current point NOW (in event handler) to capture latest ray
-        const currentPoint = new THREE.Vector3();
-        e.ray.intersectPlane(planeRef.current, currentPoint);
-
-        dragState.current.rafId = requestAnimationFrame(() => {
-            dragState.current.rafId = null;
-            if (!dragState.current.active) return;
-
-            // Calculate Delta
-            const delta = new THREE.Vector3().subVectors(currentPoint, dragState.current.startPoint);
-
-            // Snap Delta (Unified Snapping)
-            const SNAP = 0.5;
-            const snappedDelta = new THREE.Vector3(
-                Math.round(delta.x / SNAP) * SNAP,
-                0,
-                Math.round(delta.z / SNAP) * SNAP
-            );
-
-            // Optimization: Skip if no movement
-            if (snappedDelta.lengthSq() < 0.001) return;
-
+            state.devices.forEach(d => {
+                if (idsToMove.includes(d.id)) {
+                    initialPositions[d.id] = [...d.position];
+                }
+            });
+            initialPositionsRef.current = initialPositions;
+        },
+        onDrag: (snappedDelta) => {
             // Apply to ALL initial positions
             const updates: Record<string, [number, number, number]> = {};
-            Object.entries(dragState.current.initialPositions).forEach(([id, initPos]) => {
+            Object.entries(initialPositionsRef.current).forEach(([id, initPos]) => {
                 updates[id] = [
                     initPos[0] + snappedDelta.x,
                     initPos[1],
                     initPos[2] + snappedDelta.z
                 ];
             });
-
             updateDevicePositions(updates);
-        });
-    };
+        },
+        onDragEnd: () => {
+            setDraggingDevice(false);
+            initialPositionsRef.current = {};
+        }
+    });
 
     // Calculate port positions (handled by layout.ts now)
 
@@ -195,8 +128,6 @@ export const DeviceNode = ({ device }: { device: Device }) => {
                     }
                     selectPort(null);
                 }}
-                onPointerOver={() => { document.body.style.cursor = 'grab'; }}
-                onPointerOut={() => { document.body.style.cursor = 'auto'; }}
                 onContextMenu={(e) => {
                     e.stopPropagation();
                     if (!layoutMode) { // Disable menu in Layout Mode

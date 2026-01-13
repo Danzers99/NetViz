@@ -3,6 +3,7 @@ import { validateNetwork } from './validation';
 import { getDeviceDefinition } from './data/deviceDefinitions';
 import { isWifiCapable } from './utils/wifi';
 import { propagatePowerState, updateLinkStatuses, updateConnectionStates, updateWirelessAssociation } from './utils/simulation';
+import { getRoomAt } from './utils/geometry';
 import type { ValidationError } from './validation';
 import type { Device, DeviceType, Port, Settings, DeviceAction, ConfigData, ProjectInfo, Room, RoomType } from './types';
 import { migrateConfig, validateAndSanitizeConfig, CURRENT_SCHEMA_VERSION, loadSettingsFromStorage, saveSettingsToStorage } from './utils/persistence';
@@ -59,11 +60,11 @@ interface AppState {
     setDraggingRoom: (dragging: boolean) => void;
 
     // Hover/Tracing State
-    hoveredElement: { type: 'port' | 'cable'; id: string } | null;
+    hoveredElement: { type: 'port' | 'cable' | 'room'; id: string } | null;
     highlightedPorts: Set<string>;
     highlightedCables: Set<string>;
     highlightedDevices: Set<string>;
-    setHoveredElement: (element: { type: 'port' | 'cable'; id: string } | null) => void;
+    setHoveredElement: (element: { type: 'port' | 'cable' | 'room'; id: string } | null) => void;
     // Actions
     triggerAction: (deviceId: string, action: DeviceAction) => void;
     addDevice: (type: DeviceType) => void;
@@ -160,17 +161,9 @@ export const useAppStore = create<AppState>((set, get) => ({
             devices: state.devices.map(d => {
                 if (updates[d.id]) {
                     // Re-calculate room for each modified device
-                    // This duplicates logic from updateDevicePosition but needed for batch
                     const [x, , z] = updates[d.id];
-                    let roomId: string | null = null;
-                    for (const room of state.rooms) {
-                        const halfW = room.width / 2;
-                        const halfH = room.height / 2;
-                        if (x >= room.x - halfW && x <= room.x + halfW && z >= room.y - halfH && z <= room.y + halfH) {
-                            roomId = room.id;
-                            break;
-                        }
-                    }
+                    const room = getRoomAt(x, z, state.rooms);
+                    const roomId = room ? room.id : null;
                     return { ...d, position: updates[d.id], roomId };
                 }
                 return d;
@@ -272,32 +265,8 @@ export const useAppStore = create<AppState>((set, get) => ({
         set((state) => {
             // Check if device is inside any room
             const [x, , z] = position;
-            let roomId: string | null = null;
-
-            // Simple point-in-rect check
-            // Room x,y is center? No, usually top-left or center. Let's assume Room properties are center-based or corner-based.
-            // Requirement says "Rooms are rectangles... x, y, w, h". 
-            // Let's implement x,y as CENTER for consistency with ThreeJS meshes if possible, 
-            // OR corner if easier. 
-            // Standard ThreeJS planes are centered. Let's assume x,y is center.
-
-            for (const room of state.rooms) {
-                const halfW = room.width / 2;
-                const halfH = room.height / 2;
-                // In 3D, Z is 'y' in 2D top-down plan typically.
-                // Room.x -> 3D.x
-                // Room.y -> 3D.z
-
-                if (
-                    x >= room.x - halfW &&
-                    x <= room.x + halfW &&
-                    z >= room.y - halfH &&
-                    z <= room.y + halfH
-                ) {
-                    roomId = room.id;
-                    break;
-                }
-            }
+            const room = getRoomAt(x, z, state.rooms);
+            const roomId = room ? room.id : null;
 
             return {
                 devices: state.devices.map((d) =>
@@ -573,6 +542,14 @@ export const useAppStore = create<AppState>((set, get) => ({
                 queue.push(pA, pB);
                 visitedCables.add(element.id); // Add self
                 visitedCables.add(`${pB}-${pA}`); // Add reverse just in case
+            } else if (element.type === 'room') {
+                // Rooms don't highlight networks
+                return {
+                    hoveredElement: element,
+                    highlightedPorts: new Set(),
+                    highlightedCables: new Set(),
+                    highlightedDevices: new Set()
+                };
             }
 
             const devices = state.devices;

@@ -1,4 +1,5 @@
 import { useAppStore } from './store';
+import { CursorManager } from './components/CursorManager';
 import { Layout } from './components/Layout';
 import { WizardContainer } from './components/wizard/WizardContainer';
 import { Sandbox } from './components/Sandbox';
@@ -8,6 +9,7 @@ function App() {
 
   return (
     <Layout>
+      <CursorManager />
       {step === 'wizard' ? <WizardContainer /> : <Sandbox />}
     </Layout>
   );

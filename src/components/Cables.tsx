@@ -13,30 +13,67 @@ export const Cables = () => {
         const lines: { start: [number, number, number]; end: [number, number, number]; id: string }[] = [];
         const processedPorts = new Set<string>();
 
+        // Create a Map for O(1) lookup
+        const deviceMap = new Map(devices.map(d => [d.id, d]));
+
+        devices.forEach((device) => {
+            device.ports.forEach((port, index) => {
+                // Determine Connection ID (Cable ID)
+                // Use a consistent ID generation regardless of direction (e.g. sort IDs)
+                // But existing logic uses `processedPorts` to dedupe.
+
+                if (port.connectedTo && !processedPorts.has(port.id)) {
+                    // Find target device
+                    // Optimization: Use Map instead of .find()
+                    // But we also need targetPortIndex to use getPortPosition
+                    // Let's get the device first
+
+                    // The connectedTo string is a PORT ID, NOT a Device ID?
+                    // "connectedTo": "deviceA-port1"
+                    // Port IDs are typically "deviceId-portId".
+                    // But `connectedTo` stores the TARGET PORT ID.
+
+                    // We need to find the device that OWNS this port.
+                    // The store structure puts ports INSIDE devices.
+                    // We don't have a flat Port -> Device map.
+
+                    // So `deviceMap.get(port.connectedTo)` won't work because `port.connectedTo` is a port ID.
+
+                    // Wait, existing code:
+                    // for (const d of devices) { const pIndex = d.ports.findIndex(...) }
+
+                    // Optimization Strategy Revised:
+                    // We can pre-calculate a PortID -> Device Map. O(TotalPorts).
+                    // Or, since PortID usually contains DeviceID prefix?
+                    // port.id: `${deviceId}-${p.id}` (helper `generatePorts`).
+                    // BUT `p.id` might contain dashes.
+
+                    // Let's rely on the Lookup Map construction.
+                    // Map<PortID, { device, portIndex }>
+
+                    // But constructing this map every frame is O(TotalPorts).
+                    // Original loop was O(Devices * Devices * Ports).
+                    // O(TotalPorts) construction + O(TotalConnections) lookup is way better.
+                }
+            });
+        });
+
+        // ACTUALLY IMPLEMENTATION:
+        const portLookup = new Map<string, { device: Device; index: number }>();
+        devices.forEach(d => {
+            d.ports.forEach((p, i) => {
+                portLookup.set(p.id, { device: d, index: i });
+            });
+        });
+
         devices.forEach((device) => {
             device.ports.forEach((port, index) => {
                 if (port.connectedTo && !processedPorts.has(port.id)) {
-                    // Find target device and port
-                    let targetDevice: Device | undefined;
-                    let targetPortIndex = -1;
+                    const target = portLookup.get(port.connectedTo);
 
-                    for (const d of devices) {
-                        const pIndex = d.ports.findIndex((p) => p.id === port.connectedTo);
-                        if (pIndex !== -1) {
-                            targetDevice = d;
-                            targetPortIndex = pIndex;
-                            break;
-                        }
-                    }
-
-                    if (targetDevice) {
-                        // Calculate positions
-                        // Device position is center bottom of the box (y=0)
-                        // Port is at y=0.5 (center of box) + relative z=0.51
-                        // Actually in DeviceNode: group pos = device.pos. mesh pos = [0, 0.5, 0].
-                        // Ports group pos = [0, 0.5, 0.51].
-                        // Port local pos = [startX + index * spacing, 0, 0] relative to Ports group.
-                        // So world pos = device.pos + [0, 0.5, 0.51] + [startX + index * spacing, 0, 0]
+                    if (target) {
+                        const targetDevice = target.device;
+                        const targetPortIndex = target.index;
 
                         // Use shared layout logic
                         const startLocalPos = getPortPosition(device, port, index);
@@ -87,12 +124,10 @@ export const Cables = () => {
                         onPointerOver={(e) => {
                             e.stopPropagation();
                             setHoveredElement({ type: 'cable', id: conn.id });
-                            document.body.style.cursor = 'pointer';
                         }}
                         onPointerOut={(e) => {
                             e.stopPropagation();
                             setHoveredElement(null);
-                            document.body.style.cursor = 'auto';
                         }}
                     />
                 );

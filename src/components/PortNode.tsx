@@ -71,14 +71,12 @@ export const PortNode = ({ port, position, orientation = [0, 0, 0] }: { port: Po
         e.stopPropagation();
         setLocalHovered(true);
         setHoveredElement({ type: 'port', id: port.id });
-        document.body.style.cursor = 'pointer';
     };
 
     const handlePointerOut = (e: ThreeEvent<PointerEvent>) => {
         e.stopPropagation();
         setLocalHovered(false);
         setHoveredElement(null);
-        document.body.style.cursor = 'auto';
     };
 
     // Link Light Color
