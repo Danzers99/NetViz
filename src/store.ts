@@ -86,6 +86,8 @@ interface AppState {
     // Right Panel State (Mutually Exclusive)
     isHistoryOpen: boolean;
     setHistoryOpen: (open: boolean) => void;
+    isSettingsOpen: boolean;
+    setSettingsOpen: (open: boolean) => void;
 
     // Camera
     cameraResetTrigger: number;
@@ -144,6 +146,7 @@ export const useAppStore = create<AppState>((set, get) => ({
     revisions: [],
     sessionChanges: new Set(),
     isHistoryOpen: false,
+    isSettingsOpen: false,
     layoutMode: false, // Initialize layoutMode
     selectedPortId: null,
     selectedDeviceId: null,
@@ -639,14 +642,20 @@ export const useAppStore = create<AppState>((set, get) => ({
 
     setHistoryOpen: (open) => set({
         isHistoryOpen: open,
-        // If opening history, close properties
-        ...(open ? { propertiesPanelDeviceId: null } : {})
+        // If opening history, close properties and settings
+        ...(open ? { propertiesPanelDeviceId: null, isSettingsOpen: false } : {})
     }),
 
     setPropertiesPanelDeviceId: (id: string | null) => set({
         propertiesPanelDeviceId: id,
-        // If opening properties, close history
-        ...(id ? { isHistoryOpen: false } : {})
+        // If opening properties, close history and settings
+        ...(id ? { isHistoryOpen: false, isSettingsOpen: false } : {})
+    }),
+
+    setSettingsOpen: (open: boolean) => set({
+        isSettingsOpen: open,
+        // If opening settings, close history and properties
+        ...(open ? { isHistoryOpen: false, propertiesPanelDeviceId: null } : {})
     }),
 
     reset: () => set({

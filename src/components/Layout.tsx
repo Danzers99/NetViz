@@ -26,8 +26,10 @@ export const Layout = ({ children }: { children: ReactNode }) => {
 
     const isHistoryOpen = useAppStore((state) => state.isHistoryOpen);
     const setHistoryOpen = useAppStore((state) => state.setHistoryOpen);
+    const isSettingsOpen = useAppStore((state) => state.isSettingsOpen);
+    const setSettingsOpen = useAppStore((state) => state.setSettingsOpen);
 
-    const [showSettings, setShowSettings] = useState(false);
+    // showSettings moved to global store
     // showHistory moved to global store
     const [showSaveDialog, setShowSaveDialog] = useState(false);
     const [pendingAutoSummary, setPendingAutoSummary] = useState('');
@@ -173,7 +175,7 @@ export const Layout = ({ children }: { children: ReactNode }) => {
                 onCancel={() => setShowSaveDialog(false)}
             />
 
-            {showSettings && <SettingsPanel onClose={() => setShowSettings(false)} />}
+            {isSettingsOpen && <SettingsPanel onClose={() => setSettingsOpen(false)} />}
             {isHistoryOpen && step === 'sandbox' && <HistoryPanel onClose={() => setHistoryOpen(false)} />}
 
             <DeviceProperties />
@@ -194,8 +196,8 @@ export const Layout = ({ children }: { children: ReactNode }) => {
                     </button>
 
                     <button
-                        onClick={() => setShowSettings(!showSettings)}
-                        className={`w-full flex items-center gap-3 px-3 py-2 rounded-lg transition-colors font-medium ${showSettings ? 'bg-slate-100 dark:bg-slate-700 text-slate-900 dark:text-slate-100' : 'hover:bg-slate-100 dark:hover:bg-slate-700'
+                        onClick={() => setSettingsOpen(!isSettingsOpen)}
+                        className={`w-full flex items-center gap-3 px-3 py-2 rounded-lg transition-colors font-medium ${isSettingsOpen ? 'bg-slate-100 dark:bg-slate-700 text-slate-900 dark:text-slate-100' : 'hover:bg-slate-100 dark:hover:bg-slate-700'
                             }`}
                     >
                         <Settings size={20} />
