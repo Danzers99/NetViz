@@ -69,6 +69,7 @@ export const DeviceNode = ({ device }: { device: Device }) => {
 
     const { handlePointerDown, handlePointerUp, handlePointerMove } = useDraggable({
         snap: 0.5,
+        disabled: layoutMode,
         onDragStart: (e) => {
             e.stopPropagation();
             setDraggingDevice(true);

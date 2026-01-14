@@ -34,6 +34,9 @@ export const RoomNode = ({ room }: { room: Room }) => {
             selectRoom(room.id);
             setIsDragging(true);
             setDraggingRoom(true);
+
+            // Capture initial position (fix for jumping bug)
+            startPosRef.current = [room.x, room.y];
         },
         onDrag: (delta) => {
             // Calculate new position based on start + delta

@@ -7,9 +7,10 @@ interface DraggableOptions {
     onDragEnd?: (e: ThreeEvent<PointerEvent>) => void;
     onDrag: (delta: THREE.Vector3, currentPoint: THREE.Vector3) => void;
     snap?: number; // Snap grid size (default 0.5)
+    disabled?: boolean;
 }
 
-export const useDraggable = ({ onDragStart, onDragEnd, onDrag, snap = 0.5 }: DraggableOptions) => {
+export const useDraggable = ({ onDragStart, onDragEnd, onDrag, snap = 0.5, disabled = false }: DraggableOptions) => {
     const planeRef = useRef(new THREE.Plane(new THREE.Vector3(0, 1, 0), 0));
     const dragState = useRef<{
         active: boolean;
@@ -24,6 +25,7 @@ export const useDraggable = ({ onDragStart, onDragEnd, onDrag, snap = 0.5 }: Dra
     });
 
     const handlePointerDown = (e: ThreeEvent<PointerEvent>) => {
+        if (disabled) return;
         e.stopPropagation();
 
         const point = new THREE.Vector3();
