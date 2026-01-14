@@ -106,8 +106,7 @@ export const updateLinkStatuses = (devices: Device[]): Device[] => {
         // Real behavior: Link light is hardware, stays up. Data (Activity) depends on OS.
         // Let's keep strict: device OFF = no link. Device ON = link.
 
-        // Device OFF = Link Down
-        if (device.status === 'offline' || device.status === 'booting') return false;
+
 
         if (device.status !== 'online') return false;
 
