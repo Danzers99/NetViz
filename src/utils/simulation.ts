@@ -23,6 +23,11 @@ export const propagatePowerState = (devices: Device[]): Device[] => {
         iterations++;
 
         currentDevices = currentDevices.map(device => {
+            // 1. Check for Manual Override
+            if (device.overrideStatus) {
+                return { ...device, status: device.overrideStatus };
+            }
+
             const hasPower = checkPowerSource(device, currentDevices);
 
             // State Transition Rule:
@@ -41,15 +46,19 @@ export const propagatePowerState = (devices: Device[]): Device[] => {
                 }
             } else {
                 // Power OK
-                if (device.status === 'offline') {
-                    // Just plugged in / Power restored
+                if (device.status !== 'online') {
+                    // Just plugged in / Power restored / Recovering from Error
                     // Auto-boot to online for now, BUT exclude Mobile devices (they have power buttons/batteries)
                     // Mobile devices starting OFFLINE should stay OFFLINE until manually turned on.
                     const isMobile = device.type === 'orderpad' || device.type === 'cakepop';
 
-                    if (!isMobile) {
-                        return { ...device, status: 'online' };
+                    // Only block auto-boot for Mobile if they are currently OFFLINE.
+                    // If they are in Error/Booting, we assume they recover/finish booting.
+                    if (isMobile && device.status === 'offline') {
+                        return device;
                     }
+
+                    return { ...device, status: 'online' };
                 }
             }
             return device;
@@ -82,6 +91,11 @@ export const updateLinkStatuses = (devices: Device[]): Device[] => {
         const device = devices.find(d => d.ports.some(p => p.id === portId));
         if (!device) return false;
 
+        // Debug Log
+        if (device.status === 'offline' && (device.type === 'pos' || device.type === 'v4-pos')) {
+            console.log(`[LinkCheck] Checking logic for Offline POS ${device.id}. Status: ${device.status}`);
+        }
+
         // Device OFF = Link Down
         if (device.status === 'offline' || device.status === 'booting') return false;
         // Note: 'booting' usually has link up, but data logic might fail. 
@@ -91,6 +105,9 @@ export const updateLinkStatuses = (devices: Device[]): Device[] => {
         // PROMPT: "Port-level LED indicators for: Power, Link, Activity".
         // Real behavior: Link light is hardware, stays up. Data (Activity) depends on OS.
         // Let's keep strict: device OFF = no link. Device ON = link.
+
+        // Device OFF = Link Down
+        if (device.status === 'offline' || device.status === 'booting') return false;
 
         if (device.status !== 'online') return false;
 
@@ -108,6 +125,7 @@ export const updateLinkStatuses = (devices: Device[]): Device[] => {
                 return false;
             }
         }
+
         return true;
     };
 

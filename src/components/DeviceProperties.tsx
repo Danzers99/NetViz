@@ -32,7 +32,14 @@ export const DeviceProperties = () => {
                     <label className="text-sm font-semibold text-slate-700 dark:text-slate-300">Status</label>
                     <div className="flex gap-2 flex-wrap">
                         <button
-                            onClick={() => updateDevice(device.id, { status: 'online' })}
+                            title="Reset to Automatic. Device will only come online if powered."
+                            onClick={() => {
+                                updateDevice(device.id, { overrideStatus: null });
+                                // Feedback check: if device has no power, it will be offline.
+                                // We can't check 'new' status here easily without async/wait for store update.
+                                // But we can check if it currently has power? No, logic is complex.
+                                // Let's just set it. The simulations runs immediately in store.
+                            }}
                             className={`flex-1 py-2 px-4 rounded-lg text-sm font-medium transition-colors ${device.status === 'online'
                                 ? 'bg-green-100 text-green-700 border border-green-200 dark:bg-green-900/30 dark:text-green-300 dark:border-green-800'
                                 : 'bg-slate-50 text-slate-600 border border-slate-200 hover:bg-slate-100 dark:bg-slate-700 dark:text-slate-300 dark:border-slate-600 dark:hover:bg-slate-600'
@@ -41,7 +48,8 @@ export const DeviceProperties = () => {
                             Online
                         </button>
                         <button
-                            onClick={() => updateDevice(device.id, { status: 'offline' })}
+                            title="Force Device OFF. Simulates power failure or shutdown."
+                            onClick={() => updateDevice(device.id, { overrideStatus: 'offline' })}
                             className={`flex-1 py-2 px-4 rounded-lg text-sm font-medium transition-colors ${device.status === 'offline'
                                 ? 'bg-slate-200 text-slate-700 border border-slate-300 dark:bg-slate-600 dark:text-slate-200 dark:border-slate-500'
                                 : 'bg-slate-50 text-slate-600 border border-slate-200 hover:bg-slate-100 dark:bg-slate-700 dark:text-slate-300 dark:border-slate-600 dark:hover:bg-slate-600'
@@ -50,7 +58,8 @@ export const DeviceProperties = () => {
                             Offline
                         </button>
                         <button
-                            onClick={() => updateDevice(device.id, { status: 'booting' })}
+                            title="Force Device into Booting state."
+                            onClick={() => updateDevice(device.id, { overrideStatus: 'booting' })}
                             className={`flex-1 py-2 px-4 rounded-lg text-sm font-medium transition-colors ${device.status === 'booting'
                                 ? 'bg-amber-100 text-amber-700 border border-amber-200 dark:bg-amber-900/30 dark:text-amber-300 dark:border-amber-800'
                                 : 'bg-slate-50 text-slate-600 border border-slate-200 hover:bg-slate-100 dark:bg-slate-700 dark:text-slate-300 dark:border-slate-600 dark:hover:bg-slate-600'
@@ -59,7 +68,8 @@ export const DeviceProperties = () => {
                             Booting
                         </button>
                         <button
-                            onClick={() => updateDevice(device.id, { status: 'error' })}
+                            title="Force Device into Error state."
+                            onClick={() => updateDevice(device.id, { overrideStatus: 'error' })}
                             className={`flex-1 py-2 px-4 rounded-lg text-sm font-medium transition-colors ${device.status === 'error'
                                 ? 'bg-red-100 text-red-700 border border-red-200 dark:bg-red-900/30 dark:text-red-300 dark:border-red-800'
                                 : 'bg-slate-50 text-slate-600 border border-slate-200 hover:bg-slate-100 dark:bg-slate-700 dark:text-slate-300 dark:border-slate-600 dark:hover:bg-slate-600'

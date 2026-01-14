@@ -66,6 +66,7 @@ export interface Device {
     roomId?: string | null;
     ports: Port[];
     status: DeviceStatus;
+    overrideStatus?: DeviceStatus | null;
     // Power state
     poeMode?: 'passive' | 'active_802_3af' | 'off';
     ip?: string;
