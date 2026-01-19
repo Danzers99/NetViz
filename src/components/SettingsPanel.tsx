@@ -1,4 +1,4 @@
-import { X, Settings as SettingsIcon } from 'lucide-react';
+import { X, Settings as SettingsIcon, Play } from 'lucide-react';
 import { useAppStore } from '../store';
 
 export const SettingsPanel = ({ onClose }: { onClose: () => void }) => {
@@ -103,12 +103,31 @@ export const SettingsPanel = ({ onClose }: { onClose: () => void }) => {
                         </button>
                     </div>
                 </div>
+
+                <div className="space-y-4">
+                    <h3 className="text-sm font-semibold text-slate-400 uppercase tracking-wider">Help & About</h3>
+                    <div className="flex items-center justify-between">
+                        <label className="text-slate-700 dark:text-slate-300 font-medium flex items-center gap-2">
+                            Replay Intro
+                        </label>
+                        <button
+                            onClick={() => {
+                                useAppStore.getState().setHasSeenIntro(false);
+                                onClose();
+                            }}
+                            className="px-4 py-1.5 bg-blue-50 dark:bg-blue-900/20 hover:bg-blue-100 dark:hover:bg-blue-900/40 rounded text-sm text-blue-600 dark:text-blue-400 font-medium transition-colors flex items-center gap-2"
+                        >
+                            <Play size={14} />
+                            Replay
+                        </button>
+                    </div>
+                </div>
             </div>
 
             <div className="p-4 border-t border-slate-100 dark:border-slate-700 text-center">
                 <p className="text-xs text-slate-400">Created by David Morales</p>
                 <p className="text-[10px] text-slate-300 dark:text-slate-600 mt-1">NetViz v{__APP_VERSION__}</p>
             </div>
-        </div>
+        </div >
     );
 };

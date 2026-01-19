@@ -99,6 +99,7 @@ export interface Settings {
     showDeviceNames?: boolean;
     showRoomNames?: boolean;
     userName?: string; // Identity for revisions
+    hasSeenIntro?: boolean; // Track if user has seen onboarding
 }
 
 export interface RevisionStats {

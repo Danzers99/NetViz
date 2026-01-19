@@ -41,6 +41,7 @@ interface AppState {
     setProjectInfo: (info: Partial<ProjectInfo>) => void;
     updateSettings: (settings: Partial<Settings>) => void;
     setUserName: (name: string) => void;
+    setHasSeenIntro: (seen: boolean) => void;
     addSessionChange: (category: string) => void;
     addRevision: (revision: Revision) => void;
     generateSandbox: () => void;
@@ -172,6 +173,12 @@ export const useAppStore = create<AppState>((set, get) => ({
 
     setUserName: (name) => set(state => {
         const newSettings = { ...state.settings, userName: name };
+        saveSettingsToStorage(newSettings);
+        return { settings: newSettings };
+    }),
+
+    setHasSeenIntro: (seen) => set(state => {
+        const newSettings = { ...state.settings, hasSeenIntro: seen };
         saveSettingsToStorage(newSettings);
         return { settings: newSettings };
     }),
