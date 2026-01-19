@@ -849,7 +849,12 @@ export const useAppStore = create<AppState>((set, get) => ({
             const errors = validateNetwork(cleanData.devices);
 
             set({
-                settings: cleanData.settings,
+                settings: {
+                    ...cleanData.settings,
+                    // Preserve local user-specific settings that shouldn't be overridden by the file
+                    hasSeenIntro: get().settings.hasSeenIntro,
+                    userName: get().settings.userName || cleanData.settings.userName // Keep current user if set, else use file's
+                },
                 deviceCounts: cleanData.deviceCounts,
                 devices: cleanData.devices,
                 rooms: cleanData.rooms || [], // Import Rooms
