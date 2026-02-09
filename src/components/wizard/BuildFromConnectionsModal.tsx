@@ -54,6 +54,13 @@ const DEVICE_ROLES = {
         defaultRoom: 'kitchen' as RoomType,
         color: 'text-cyan-500',
     },
+    router: {
+        label: 'Router',
+        icon: Router,
+        defaultType: 'zyxel-router' as DeviceType,
+        defaultRoom: 'office' as RoomType,
+        color: 'text-blue-600',
+    },
 };
 
 // Generate unique ID

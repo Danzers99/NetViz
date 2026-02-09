@@ -3,7 +3,7 @@
  * Builds network topology from SimpleBuildConfig (role-based, no port selection)
  */
 
-import type { Device, Room, RoomType, DeviceType } from '../types';
+import type { Device, Room, RoomType, DeviceType, Port } from '../types';
 import type { SimpleBuildConfig, BuildResult, BuildError } from './connectionTypes';
 import { DEVICE_DEFINITIONS } from '../data/deviceDefinitions';
 import { PortAllocator } from './portAllocator';
@@ -27,7 +27,7 @@ function generatePorts(type: DeviceType, deviceId: string): Port[] {
     const def = DEVICE_DEFINITIONS[type];
     if (!def) return [];
 
-    return def.ports.map((portDef, index) => ({
+    return def.ports.map((portDef) => ({
         id: `${deviceId}-${portDef.id}`,
         name: portDef.label, // Required by Port interface and validation logic
         role: portDef.role,
@@ -348,7 +348,7 @@ export function buildSimpleTopology(config: SimpleBuildConfig): BuildResult | Bu
     // Create outlets per room
     for (const [roomId, roomDevices] of devicesByRoom) {
         const outletCount = Math.ceil(roomDevices.length / 4);
-        const _room = rooms.find(r => r.id === roomId); // Used for potential debug
+        // const _room = rooms.find(r => r.id === roomId); // Used for potential debug
 
         for (let i = 0; i < outletCount; i++) {
             const outletId = generateDeviceId('power-outlet', deviceIndex++);
