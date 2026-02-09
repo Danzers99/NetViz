@@ -55,10 +55,10 @@ export const SandboxModeSelector = ({
                         Build from Connections
                     </h3>
                     <p className="text-slate-500 dark:text-slate-400 text-center text-sm mb-4">
-                        Paste your device & connection list. We'll automatically build and arrange the topology.
+                        Add your devices and we'll handle the wiring and layout automatically.
                     </p>
                     <span className="text-xs text-slate-400 dark:text-slate-500">
-                        Best for: Fast, standard setups
+                        Best for: Fast, standard store setups
                     </span>
                     <div className="absolute bottom-6 right-6 opacity-0 group-hover:opacity-100 transition-opacity text-violet-500">
                         <ArrowRight size={24} />

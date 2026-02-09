@@ -128,8 +128,8 @@ export const BuildFromConnectionsModal = ({ onBuild, onCancel }: BuildFromConnec
 
         if (!hasSwitches && endpoints.length > 4) {
             issues.push({
-                type: 'warning',
-                message: 'No switch added. Router has limited LAN ports. Consider adding a switch.',
+                type: 'error',
+                message: 'Add a switch to connect all devices before building.',
             });
         }
 
@@ -153,6 +153,12 @@ export const BuildFromConnectionsModal = ({ onBuild, onCancel }: BuildFromConnec
 
         if (devices.length === 0) {
             setError('Add at least one device (switch, POS, or printer)');
+            return;
+        }
+
+        const hasBlockingError = validationIssues.some(i => i.type === 'error');
+        if (hasBlockingError) {
+            // Should be blocked by UI, but double check
             return;
         }
 
@@ -187,6 +193,8 @@ export const BuildFromConnectionsModal = ({ onBuild, onCancel }: BuildFromConnec
         }
         setError(null);
     };
+
+    const hasErrors = validationIssues.some(i => i.type === 'error');
 
     return (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
@@ -276,22 +284,24 @@ export const BuildFromConnectionsModal = ({ onBuild, onCancel }: BuildFromConnec
                             Add Devices
                         </div>
                         <div className="flex flex-wrap gap-2">
-                            {Object.entries(DEVICE_ROLES).map(([role, def]) => {
-                                const Icon = def.icon;
-                                return (
-                                    <button
-                                        key={role}
-                                        onClick={() => addDevice(role as SimpleDevice['role'])}
-                                        className="flex items-center gap-2 px-4 py-2 bg-white dark:bg-slate-700 border border-slate-200 dark:border-slate-600 rounded-lg hover:border-violet-300 dark:hover:border-violet-500 hover:shadow-sm transition-all"
-                                    >
-                                        <Icon size={16} className={def.color} />
-                                        <span className="text-sm font-medium text-slate-700 dark:text-slate-200">
-                                            {def.label}
-                                        </span>
-                                        <Plus size={14} className="text-slate-400" />
-                                    </button>
-                                );
-                            })}
+                            {Object.entries(DEVICE_ROLES)
+                                .filter(([role]) => role !== 'router')
+                                .map(([role, def]) => {
+                                    const Icon = def.icon;
+                                    return (
+                                        <button
+                                            key={role}
+                                            onClick={() => addDevice(role as SimpleDevice['role'])}
+                                            className="flex items-center gap-2 px-4 py-2 bg-white dark:bg-slate-700 border border-slate-200 dark:border-slate-600 rounded-lg hover:border-violet-300 dark:hover:border-violet-500 hover:shadow-sm transition-all"
+                                        >
+                                            <Icon size={16} className={def.color} />
+                                            <span className="text-sm font-medium text-slate-700 dark:text-slate-200">
+                                                {def.label}
+                                            </span>
+                                            <Plus size={14} className="text-slate-400" />
+                                        </button>
+                                    );
+                                })}
                         </div>
                     </div>
 
@@ -372,7 +382,9 @@ export const BuildFromConnectionsModal = ({ onBuild, onCancel }: BuildFromConnec
                                     key={idx}
                                     className={`p-2.5 rounded-lg flex items-start gap-2 text-sm ${issue.type === 'warning'
                                         ? 'bg-amber-50 dark:bg-amber-900/20 text-amber-700 dark:text-amber-300'
-                                        : 'bg-blue-50 dark:bg-blue-900/20 text-blue-700 dark:text-blue-300'
+                                        : issue.type === 'error'
+                                            ? 'bg-red-50 dark:bg-red-900/20 text-red-700 dark:text-red-300'
+                                            : 'bg-blue-50 dark:bg-blue-900/20 text-blue-700 dark:text-blue-300'
                                         }`}
                                 >
                                     <AlertCircle size={16} className="flex-shrink-0 mt-0.5" />
@@ -408,7 +420,7 @@ export const BuildFromConnectionsModal = ({ onBuild, onCancel }: BuildFromConnec
                         </button>
                         <button
                             onClick={handleBuild}
-                            disabled={devices.length === 0}
+                            disabled={devices.length === 0 || hasErrors}
                             className="px-6 py-2.5 text-sm font-medium bg-violet-600 hover:bg-violet-700 disabled:bg-slate-400 disabled:cursor-not-allowed text-white rounded-lg shadow-lg shadow-violet-500/25 transition-colors flex items-center gap-2"
                         >
                             <Zap size={16} />
