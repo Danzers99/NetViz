@@ -1,5 +1,5 @@
 import type { Device } from '../types';
-import { getDeviceDefinition } from '../data/deviceDefinitions';
+
 import { checkPowerSource } from './power';
 import { checkUpstreamConnection } from './network';
 
@@ -110,20 +110,9 @@ export const updateLinkStatuses = (devices: Device[]): Device[] => {
 
         if (device.status !== 'online') return false;
 
-        // Passthrough Logic (Injector)
-        const def = getDeviceDefinition(device.type);
-        if (def.capabilities.isPoEInjector) {
-            const port = device.ports.find(p => p.id === portId)!;
-            if (port.role === 'poe_source') { // PoE Out
-                // Requires LAN IN connection? 
-                // Physically, data link passes through.
-                const lanIn = device.ports.find(p => p.role === 'uplink');
-                if (lanIn && lanIn.connectedTo) {
-                    return checkLink(lanIn.connectedTo, visited);
-                }
-                return false;
-            }
-        }
+        // Passthrough Logic (Injector) - REMOVED
+        // Physical link is point-to-point. Use standard check.
+        // if (device.status === 'online') return true; (Already handled by strict return true at end)
 
         return true;
     };

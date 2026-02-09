@@ -3,21 +3,22 @@ import { ArrowRight, Upload, PlaySquare } from 'lucide-react';
 interface StepWelcomeProps {
     onStartNew: () => void;
     onLoadPrevious: () => void;
-    onQuickStart: () => void;
 }
 
-export const StepWelcome = ({ onStartNew, onLoadPrevious, onQuickStart }: StepWelcomeProps) => {
+export const StepWelcome = ({ onStartNew, onLoadPrevious }: StepWelcomeProps) => {
     return (
         <div className="flex flex-col items-center justify-center h-full p-6 animate-in fade-in slide-in-from-bottom-4 duration-500">
             <h1 className="text-4xl font-bold text-slate-900 dark:text-white mb-2 text-center">
                 Welcome to NetViz
             </h1>
             <p className="text-slate-600 dark:text-slate-400 mb-12 text-center max-w-lg text-lg">
-                Design, visualize, and simulate your detailed network topology.
+                Design, visualize, and simulate your store network.
+                <br />
+                Start from scratch using a guided setup or build instantly from device connections.
             </p>
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6 w-full max-w-4xl">
-                {/* Option A: Load Previous */}
+                {/* Option A: Load Configuration */}
                 <button
                     onClick={onLoadPrevious}
                     className="group relative flex flex-col items-center p-8 bg-white dark:bg-slate-800 rounded-2xl border-2 border-slate-200 dark:border-slate-700 hover:border-blue-500 dark:hover:border-blue-400 hover:shadow-xl transition-all duration-300 text-left"
@@ -45,28 +46,9 @@ export const StepWelcome = ({ onStartNew, onLoadPrevious, onQuickStart }: StepWe
                         Start New Sandbox
                     </h3>
                     <p className="text-slate-500 dark:text-slate-400 text-center text-sm">
-                        Create a fresh network topology from scratch using our guided wizard.
+                        Create a fresh network topology using our guided wizard or connection data.
                     </p>
                     <div className="absolute bottom-6 right-6 opacity-0 group-hover:opacity-100 transition-opacity text-orange-500">
-                        <ArrowRight size={24} />
-                    </div>
-                </button>
-
-                {/* Option C: Quick Start */}
-                <button
-                    onClick={onQuickStart}
-                    className="group relative flex flex-col items-center p-8 bg-white dark:bg-slate-800 rounded-2xl border-2 border-slate-200 dark:border-slate-700 hover:border-emerald-500 dark:hover:border-emerald-400 hover:shadow-xl transition-all duration-300 text-left md:col-span-2"
-                >
-                    <div className="mb-6 p-4 bg-emerald-50 dark:bg-emerald-900/20 text-emerald-600 dark:text-emerald-400 rounded-full group-hover:scale-110 transition-transform duration-300">
-                        <PlaySquare size={40} />
-                    </div>
-                    <h3 className="text-xl font-bold text-slate-900 dark:text-white mb-2">
-                        Quick Start Mode
-                    </h3>
-                    <p className="text-slate-500 dark:text-slate-400 text-center text-sm">
-                        Instantly load a pre-configured store location with default devices and settings.
-                    </p>
-                    <div className="absolute bottom-6 right-6 opacity-0 group-hover:opacity-100 transition-opacity text-emerald-500">
                         <ArrowRight size={24} />
                     </div>
                 </button>

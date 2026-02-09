@@ -56,6 +56,9 @@ interface AppState {
     selectRoom: (roomId: string | null) => void; // Action
     setPropertiesPanelDeviceId: (deviceId: string | null) => void;
     setDraggingDevice: (dragging: boolean) => void;
+    setStep: (step: 'wizard' | 'sandbox') => void; // Direct step setter
+    setDevices: (devices: Device[]) => void; // Direct devices setter
+    setRooms: (rooms: Room[]) => void; // Direct rooms setter
     reset: () => void;
 
     // Layout Mode Actions
@@ -521,6 +524,9 @@ export const useAppStore = create<AppState>((set, get) => ({
     clearSelection: () => set({ selectedDeviceIds: new Set(), selectedDeviceId: null }),
     selectRoom: (roomId) => set({ selectedRoomId: roomId }),
     setDraggingDevice: (dragging) => set({ isDraggingDevice: dragging }),
+    setStep: (step) => set({ step }),
+    setDevices: (devices) => set({ devices, validationErrors: validateNetwork(devices) }),
+    setRooms: (rooms) => set({ rooms }),
 
     // Layout Mode Actions
     toggleLayoutMode: () => set((state) => ({ layoutMode: !state.layoutMode })),
