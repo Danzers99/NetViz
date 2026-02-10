@@ -757,11 +757,7 @@ export const useAppStore = create<AppState>((set, get) => ({
         };
 
         switch (action) {
-            case 'reboot':
-                // Booting -> Online
-                updateDevice(deviceId, { status: 'booting' });
-                scheduleStatus('online', 10000); // 10s boot
-                break;
+
             case 'power_off':
                 updateDevice(deviceId, { status: 'offline' });
                 break;
@@ -769,14 +765,7 @@ export const useAppStore = create<AppState>((set, get) => ({
                 updateDevice(deviceId, { status: 'booting' });
                 scheduleStatus('online', 10000);
                 break;
-            case 'power_cycle':
-                // Offline -> Booting -> Online
-                updateDevice(deviceId, { status: 'offline' });
-                scheduleStatus('booting', 2000); // 2s off
-                setTimeout(() => {
-                    scheduleStatus('online', 10000); // 10s boot
-                }, 2000);
-                break;
+
         }
     },
     addDevice: (type) =>
@@ -895,7 +884,7 @@ export const useAppStore = create<AppState>((set, get) => ({
 
             if (!result.valid || !result.cleanedData) {
                 console.error('Import failed:', result.error);
-                alert(`Failed to load configuration: ${result.error}`);
+                set({ notification: { message: `Failed to load configuration: ${result.error}`, type: 'error' } });
                 return;
             }
 
@@ -926,7 +915,7 @@ export const useAppStore = create<AppState>((set, get) => ({
             });
         } catch (error) {
             console.error('Unexpected error loading config:', error);
-            alert('An unexpected error occurred while loading the configuration.');
+            set({ notification: { message: 'An unexpected error occurred while loading the configuration.', type: 'error' } });
         }
     },
 }));

@@ -78,8 +78,8 @@ export const Toolbox = () => {
                 <button
                     onClick={toggleLayoutMode}
                     className={`px-4 py-3 rounded-full shadow-lg flex items-center gap-2 font-semibold transition-all hover:scale-105 ${layoutMode
-                            ? 'bg-indigo-600 hover:bg-indigo-700 text-white'
-                            : 'bg-white hover:bg-slate-50 text-slate-700'
+                        ? 'bg-indigo-600 hover:bg-indigo-700 text-white'
+                        : 'bg-white hover:bg-slate-50 text-slate-700'
                         }`}
                 >
                     <Grid size={20} />
@@ -98,11 +98,11 @@ export const Toolbox = () => {
     }
 
     return (
-        <div className="absolute bottom-4 left-1/2 -translate-x-1/2 w-full max-w-2xl bg-white rounded-xl shadow-2xl border border-slate-200 overflow-hidden z-10 animate-in fade-in slide-in-from-bottom-4">
-            <div className="flex items-center justify-between p-4 bg-slate-50 border-b border-slate-200">
+        <div className="absolute bottom-4 left-1/2 -translate-x-1/2 w-full max-w-2xl bg-white dark:bg-slate-800 rounded-xl shadow-2xl border border-slate-200 dark:border-slate-700 overflow-hidden z-10 animate-in fade-in slide-in-from-bottom-4">
+            <div className="flex items-center justify-between p-4 bg-slate-50 dark:bg-slate-900 border-b border-slate-200 dark:border-slate-700">
                 <div className="flex gap-2">
                     {layoutMode ? (
-                        <div className="px-4 py-2 rounded-lg text-sm font-medium bg-indigo-100 text-indigo-700 flex items-center gap-2">
+                        <div className="px-4 py-2 rounded-lg text-sm font-medium bg-indigo-100 dark:bg-indigo-900/30 text-indigo-700 dark:text-indigo-300 flex items-center gap-2">
                             <LayoutTemplate size={16} />
                             Room Layout
                         </div>
@@ -111,8 +111,8 @@ export const Toolbox = () => {
                             <button
                                 onClick={() => setActiveTab('infrastructure')}
                                 className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${activeTab === 'infrastructure'
-                                    ? 'bg-blue-100 text-blue-700'
-                                    : 'text-slate-600 hover:bg-slate-100'
+                                    ? 'bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-300'
+                                    : 'text-slate-600 hover:bg-slate-100 dark:text-slate-400 dark:hover:bg-slate-700'
                                     }`}
                             >
                                 Infrastructure
@@ -120,8 +120,8 @@ export const Toolbox = () => {
                             <button
                                 onClick={() => setActiveTab('endDevices')}
                                 className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${activeTab === 'endDevices'
-                                    ? 'bg-green-100 text-green-700'
-                                    : 'text-slate-600 hover:bg-slate-100'
+                                    ? 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-300'
+                                    : 'text-slate-600 hover:bg-slate-100 dark:text-slate-400 dark:hover:bg-slate-700'
                                     }`}
                             >
                                 End Devices
@@ -133,8 +133,8 @@ export const Toolbox = () => {
                     <button
                         onClick={toggleLayoutMode}
                         className={`p-2 rounded-lg transition-colors ${layoutMode
-                                ? 'bg-indigo-100 text-indigo-700 hover:bg-indigo-200'
-                                : 'text-slate-500 hover:bg-slate-100'
+                            ? 'bg-indigo-100 text-indigo-700 hover:bg-indigo-200 dark:bg-indigo-900/30 dark:text-indigo-300 dark:hover:bg-indigo-900/50'
+                            : 'text-slate-500 hover:bg-slate-100 dark:text-slate-400 dark:hover:bg-slate-700'
                             }`}
                         title="Toggle Layout Mode"
                     >
@@ -142,7 +142,7 @@ export const Toolbox = () => {
                     </button>
                     <button
                         onClick={() => setIsOpen(false)}
-                        className="p-2 hover:bg-slate-200 rounded-lg text-slate-500 transition-colors"
+                        className="p-2 hover:bg-slate-200 dark:hover:bg-slate-700 rounded-lg text-slate-500 dark:text-slate-400 transition-colors"
                     >
                         <ChevronDown size={20} />
                     </button>
@@ -155,12 +155,12 @@ export const Toolbox = () => {
                         <button
                             key={room.type}
                             onClick={() => handleAddRoom(room.type)}
-                            className="flex flex-col items-center gap-2 p-3 rounded-xl border border-slate-200 hover:border-indigo-400 hover:bg-indigo-50 transition-all text-center group"
+                            className="flex flex-col items-center gap-2 p-3 rounded-xl border border-slate-200 dark:border-slate-700 hover:border-indigo-400 dark:hover:border-indigo-500 hover:bg-indigo-50 dark:hover:bg-indigo-900/10 transition-all text-center group"
                         >
-                            <div className="p-2 rounded-lg bg-indigo-100 text-indigo-600 group-hover:scale-110 transition-transform">
+                            <div className="p-2 rounded-lg bg-indigo-100 text-indigo-600 dark:bg-indigo-900/30 dark:text-indigo-400 group-hover:scale-110 transition-transform">
                                 <room.icon size={24} />
                             </div>
-                            <span className="text-xs font-medium text-slate-700">{room.label}</span>
+                            <span className="text-xs font-medium text-slate-700 dark:text-slate-300">{room.label}</span>
                         </button>
                     ))
                 ) : (
@@ -168,13 +168,15 @@ export const Toolbox = () => {
                         <button
                             key={device.type}
                             onClick={() => handleAddDevice(device.type as DeviceType)}
-                            className="flex flex-col items-center gap-2 p-3 rounded-xl border border-slate-200 hover:border-blue-400 hover:bg-blue-50 transition-all text-center group"
+                            className="flex flex-col items-center gap-2 p-3 rounded-xl border border-slate-200 dark:border-slate-700 hover:border-blue-400 dark:hover:border-blue-500 hover:bg-blue-50 dark:hover:bg-blue-900/10 transition-all text-center group"
                         >
-                            <div className={`p-2 rounded-lg ${activeTab === 'infrastructure' ? 'bg-blue-100 text-blue-600' : 'bg-green-100 text-green-600'
+                            <div className={`p-2 rounded-lg ${activeTab === 'infrastructure'
+                                ? 'bg-blue-100 text-blue-600 dark:bg-blue-900/30 dark:text-blue-400'
+                                : 'bg-green-100 text-green-600 dark:bg-green-900/30 dark:text-green-400'
                                 } group-hover:scale-110 transition-transform`}>
                                 <device.icon size={24} />
                             </div>
-                            <span className="text-xs font-medium text-slate-700">{device.label}</span>
+                            <span className="text-xs font-medium text-slate-700 dark:text-slate-300">{device.label}</span>
                         </button>
                     ))
                 )}

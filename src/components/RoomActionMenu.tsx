@@ -56,7 +56,7 @@ export const RoomActionMenu = ({ room, onClose }: RoomActionMenuProps) => {
                         />
                     </div>
                     <div className="space-y-1">
-                        <label className="block text-xs font-medium text-slate-500 dark:text-slate-400">Length (Y)</label>
+                        <label className="block text-xs font-medium text-slate-500 dark:text-slate-400">Length (Z)</label>
                         <input
                             type="number"
                             min="1"

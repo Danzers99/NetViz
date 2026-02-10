@@ -6,6 +6,7 @@ export const DeviceProperties = () => {
     const setPropertiesPanelDeviceId = useAppStore((state) => state.setPropertiesPanelDeviceId);
     const updateDevice = useAppStore((state) => state.updateDevice);
     const devices = useAppStore((state) => state.devices);
+    const setNotification = useAppStore((state) => state.setNotification);
 
     const device = devices.find(d => d.id === propertiesPanelDeviceId);
 
@@ -157,10 +158,13 @@ export const DeviceProperties = () => {
                                         useAppStore.getState().connectPorts(sourcePortFinal.id, targetPort.id);
                                         // Reset select
                                         e.target.value = "";
-                                        // Explicit feedback
-                                        alert(`Connected ${sourcePortFinal.name} -> ${targetDevice.name} (${targetPort.name})`);
+                                        // Check if connectPorts set an error notification (e.g. power/data mismatch)
+                                        const currentNotification = useAppStore.getState().notification;
+                                        if (!currentNotification || currentNotification.type !== 'error') {
+                                            setNotification({ message: `Connected ${sourcePortFinal.name} → ${targetDevice.name} (${targetPort.name})`, type: 'success' });
+                                        }
                                     } else {
-                                        alert("No free ports available on one or both devices.");
+                                        setNotification({ message: 'No free ports available on one or both devices.', type: 'error' });
                                         e.target.value = "";
                                     }
                                 }}

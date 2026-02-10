@@ -1,6 +1,6 @@
 import { useState, useRef, type ReactNode } from 'react';
 import { useAppStore } from '../store';
-import { LayoutGrid, Settings, HelpCircle, RotateCcw, Download, Upload, History } from 'lucide-react';
+import { LayoutGrid, Settings, HelpCircle, RotateCcw, Save as SaveIcon, FolderOpen, History } from 'lucide-react';
 import { Alerts } from './Alerts';
 import { SettingsPanel } from './SettingsPanel';
 import { DeviceProperties } from './DeviceProperties';
@@ -224,7 +224,7 @@ export const Layout = ({ children }: { children: ReactNode }) => {
                                 className="w-full flex items-center gap-3 px-3 py-2 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-700 transition-colors font-medium"
                                 title="Save Configuration"
                             >
-                                <Download size={20} />
+                                <SaveIcon size={20} />
                                 <span className="hidden md:block">Save</span>
                             </button>
                             <button
@@ -232,11 +232,15 @@ export const Layout = ({ children }: { children: ReactNode }) => {
                                 className="w-full flex items-center gap-3 px-3 py-2 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-700 transition-colors font-medium"
                                 title="Load Configuration"
                             >
-                                <Upload size={20} />
+                                <FolderOpen size={20} />
                                 <span className="hidden md:block">Load</span>
                             </button>
                             <button
-                                onClick={reset}
+                                onClick={() => {
+                                    if (window.confirm('Reset will discard all devices, rooms, and revision history. Continue?')) {
+                                        reset();
+                                    }
+                                }}
                                 className="w-full flex items-center gap-3 px-3 py-2 rounded-lg text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors font-medium"
                             >
                                 <RotateCcw size={20} />

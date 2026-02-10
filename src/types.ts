@@ -23,7 +23,7 @@ export type DeviceType =
     | 'cakepop'
     | 'unknown';
 
-export type DeviceAction = 'reboot' | 'power_cycle' | 'power_off' | 'power_on';
+export type DeviceAction = 'power_off' | 'power_on';
 
 export type PortRole = 'wan' | 'lan' | 'uplink' | 'access' | 'generic' | 'poe_source' | 'poe_client' | 'power_input' | 'power_source';
 

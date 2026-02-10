@@ -252,7 +252,7 @@ export const DeviceActionMenu = ({ device, onClose }: DeviceActionMenuProps) => 
                     Properties
                 </button>
 
-                {device.type !== 'isp-modem' && device.type !== 'power-outlet' && device.type !== 'cakepop' && device.type !== 'orderpad' && (
+                {device.ports.some(p => !['power_input', 'power_source'].includes(p.role)) && device.type !== 'isp-modem' && (
                     <button
                         onClick={() => {
                             traceToInternet(device.id);
@@ -265,7 +265,9 @@ export const DeviceActionMenu = ({ device, onClose }: DeviceActionMenuProps) => 
                     </button>
                 )}
 
-                <div className="border-t border-slate-100 dark:border-slate-700 my-1"></div>
+                {(isWirelessClient || isWirelessHost) && (
+                    <div className="border-t border-slate-100 dark:border-slate-700 my-1"></div>
+                )}
 
                 {isWirelessClient && (
                     <button
@@ -287,7 +289,9 @@ export const DeviceActionMenu = ({ device, onClose }: DeviceActionMenuProps) => 
                     </button>
                 )}
 
-                <div className="border-t border-slate-100 dark:border-slate-700 my-1"></div>
+                {(isWirelessClient || isWirelessHost || (device.type === 'cakepop' || device.type === 'orderpad')) && (
+                    <div className="border-t border-slate-100 dark:border-slate-700 my-1"></div>
+                )}
 
                 {(device.type === 'cakepop' || device.type === 'orderpad') && (
                     <>
@@ -313,8 +317,10 @@ export const DeviceActionMenu = ({ device, onClose }: DeviceActionMenuProps) => 
 
                 <button
                     onClick={() => {
-                        removeDevice(device.id);
-                        onClose();
+                        if (window.confirm(`Remove ${device.name}? This will disconnect all its cables.`)) {
+                            removeDevice(device.id);
+                            onClose();
+                        }
                     }}
                     className="px-3 py-2 text-left hover:bg-slate-100 dark:hover:bg-slate-700 transition-colors flex items-center gap-2 text-red-500 dark:text-red-400 hover:text-red-600 dark:hover:text-red-300"
                 >
