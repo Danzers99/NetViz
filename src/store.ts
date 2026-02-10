@@ -4,6 +4,7 @@ import { getDeviceDefinition } from './data/deviceDefinitions';
 import { isWifiCapable } from './utils/wifi';
 import { propagatePowerState, updateLinkStatuses, updateConnectionStates, updateWirelessAssociation } from './utils/simulation';
 import { getRoomAt } from './utils/geometry';
+import { findPathToModem, findNeighborLinks } from './utils/packetFlow';
 import type { ValidationError } from './validation';
 import type { Device, DeviceType, Port, Settings, DeviceAction, ConfigData, ProjectInfo, Room, RoomType, Revision } from './types';
 import { migrateConfig, validateAndSanitizeConfig, CURRENT_SCHEMA_VERSION, loadSettingsFromStorage, saveSettingsToStorage } from './utils/persistence';
@@ -29,6 +30,13 @@ interface AppState {
     // Multi-select & Visibility
     selectedDeviceIds: Set<string>;
     cameraTarget: [number, number, number]; // Center of screen on ground plane
+
+    // Packet Flow
+    packetFlowMode: 'off' | 'trace' | 'troubleshoot';
+    packetFlowLinks: string[]; // cable IDs to animate
+    setPacketFlowMode: (mode: 'off' | 'trace' | 'troubleshoot') => void;
+    traceToInternet: (deviceId: string) => void;
+    clearPacketFlow: () => void;
 
     toggleShowDeviceNames: () => void;
     toggleShowRoomNames: () => void;
@@ -160,6 +168,10 @@ export const useAppStore = create<AppState>((set, get) => ({
     selectedDeviceIds: new Set(),
     cameraTarget: [0, 0, 0],
     validationErrors: [],
+
+    // Packet Flow
+    packetFlowMode: 'off',
+    packetFlowLinks: [],
 
     toggleShowDeviceNames: () => set(state => {
         const newSettings = { ...state.settings, showDeviceNames: !state.settings.showDeviceNames };
@@ -493,22 +505,21 @@ export const useAppStore = create<AppState>((set, get) => ({
             return { devices, validationErrors: errors };
         }),
     selectPort: (portId) => set({ selectedPortId: portId }),
-    selectDevice: (deviceId) => set(() => {
-        // Multi-select logic would go here if we passed a modifier flag to selectDevice
-        // For now, simpler implementation:
-        // If shift key usage is handled at component level, we might need a separate toggleSelection action
-        // But to keep interface clean, let's assume this is single select unless we add a new action.
-
-        // Revised plan: We need to support toggle.
-        // Actually, let's just make a new action or update this one if we can pass the modifier.
-        // Since we can't easily change signature in useAppStore without updating callsites...
-        // Let's rely on a separate 'toggleSelectDevice' or 'setSelection' if needed.
-        // BUT, for now, let's implement standard single select here and handle multi in components using a new action?
-        // No, let's just use `selectedDeviceId` as "Primary" and sync `selectedDeviceIds`.
-
+    selectDevice: (deviceId) => set((state) => {
         const newSet = new Set<string>();
         if (deviceId) newSet.add(deviceId);
-        return { selectedDeviceId: deviceId, selectedDeviceIds: newSet };
+
+        // Auto-update troubleshoot focus links when selecting a device
+        let packetFlowLinks = state.packetFlowLinks;
+        if (state.packetFlowMode === 'troubleshoot') {
+            if (deviceId) {
+                packetFlowLinks = findNeighborLinks(deviceId, state.devices, 8);
+            } else {
+                packetFlowLinks = [];
+            }
+        }
+
+        return { selectedDeviceId: deviceId, selectedDeviceIds: newSet, packetFlowLinks };
     }),
     toggleSelection: (deviceId: string) => set(state => {
         const newSet = new Set(state.selectedDeviceIds);
@@ -521,7 +532,12 @@ export const useAppStore = create<AppState>((set, get) => ({
         const last = Array.from(newSet).pop() || null;
         return { selectedDeviceIds: newSet, selectedDeviceId: last };
     }),
-    clearSelection: () => set({ selectedDeviceIds: new Set(), selectedDeviceId: null }),
+    clearSelection: () => set((state) => ({
+        selectedDeviceIds: new Set(),
+        selectedDeviceId: null,
+        // Clear troubleshoot flow when deselecting
+        packetFlowLinks: state.packetFlowMode === 'troubleshoot' ? [] : state.packetFlowLinks,
+    })),
     selectRoom: (roomId) => set({ selectedRoomId: roomId }),
     setDraggingDevice: (dragging) => set({ isDraggingDevice: dragging }),
     setStep: (step) => set({ step }),
@@ -671,6 +687,38 @@ export const useAppStore = create<AppState>((set, get) => ({
         ...(open ? { isHistoryOpen: false, propertiesPanelDeviceId: null } : {})
     }),
 
+    // Packet Flow Actions
+    setPacketFlowMode: (mode) => set((state) => {
+        if (mode === 'troubleshoot' && state.selectedDeviceId) {
+            return {
+                packetFlowMode: mode,
+                packetFlowLinks: findNeighborLinks(state.selectedDeviceId, state.devices, 8),
+            };
+        }
+        if (mode === 'off') {
+            return { packetFlowMode: 'off', packetFlowLinks: [] };
+        }
+        return { packetFlowMode: mode };
+    }),
+
+    traceToInternet: (deviceId) => set((state) => {
+        const path = findPathToModem(deviceId, state.devices);
+        if (path.length === 0) {
+            // No path found — set notification
+            return {
+                notification: { message: 'No path to internet found', type: 'info' },
+                packetFlowMode: 'off' as const,
+                packetFlowLinks: [],
+            };
+        }
+        return {
+            packetFlowMode: 'trace' as const,
+            packetFlowLinks: path,
+        };
+    }),
+
+    clearPacketFlow: () => set({ packetFlowMode: 'off', packetFlowLinks: [] }),
+
     reset: () => set({
         step: 'wizard',
         devices: [],
@@ -687,7 +735,9 @@ export const useAppStore = create<AppState>((set, get) => ({
         highlightedPorts: new Set(),
         highlightedCables: new Set(),
         highlightedDevices: new Set(),
-        projectInfo: { // Reset project info default
+        packetFlowMode: 'off' as const,
+        packetFlowLinks: [],
+        projectInfo: {
             name: 'New Project',
             createdAt: new Date().toISOString()
         }

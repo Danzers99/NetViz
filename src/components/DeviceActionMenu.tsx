@@ -1,10 +1,10 @@
 import { useState } from 'react';
 import { Html } from '@react-three/drei';
 import { useAppStore } from '../store';
-import type { Device, DeviceAction } from '../types';
+import type { Device } from '../types';
 import { isWifiCapable } from '../utils/wifi';
 
-import { Trash2, Wifi, Settings, ArrowLeft, Save } from 'lucide-react';
+import { Trash2, Wifi, Settings, ArrowLeft, Save, Route } from 'lucide-react';
 
 interface DeviceActionMenuProps {
     device: Device;
@@ -188,13 +188,9 @@ export const DeviceActionMenu = ({ device, onClose }: DeviceActionMenuProps) => 
     const triggerAction = useAppStore((state) => state.triggerAction);
     const removeDevice = useAppStore((state) => state.removeDevice);
     const setPropertiesPanelDeviceId = useAppStore((state) => state.setPropertiesPanelDeviceId);
+    const traceToInternet = useAppStore((state) => state.traceToInternet);
 
     const [view, setView] = useState<MenuState>('main');
-
-    const handleAction = (action: DeviceAction) => {
-        triggerAction(device.id, action);
-        onClose();
-    };
 
     const isWirelessClient = isWifiCapable(device.type);
     const isWirelessHost = !!device.wifiHosting;
@@ -255,6 +251,20 @@ export const DeviceActionMenu = ({ device, onClose }: DeviceActionMenuProps) => 
                     <Settings size={14} />
                     Properties
                 </button>
+
+                {device.type !== 'isp-modem' && device.type !== 'power-outlet' && device.type !== 'cakepop' && device.type !== 'orderpad' && (
+                    <button
+                        onClick={() => {
+                            traceToInternet(device.id);
+                            onClose();
+                        }}
+                        className="px-3 py-2 text-left hover:bg-slate-100 dark:hover:bg-slate-700 transition-colors flex items-center gap-2 text-blue-600 dark:text-blue-400"
+                    >
+                        <Route size={14} />
+                        Trace to Internet
+                    </button>
+                )}
+
                 <div className="border-t border-slate-100 dark:border-slate-700 my-1"></div>
 
                 {isWirelessClient && (
@@ -279,35 +289,27 @@ export const DeviceActionMenu = ({ device, onClose }: DeviceActionMenuProps) => 
 
                 <div className="border-t border-slate-100 dark:border-slate-700 my-1"></div>
 
-
-
-                <button
-                    onClick={() => handleAction('power_cycle')}
-                    className="px-3 py-2 text-left hover:bg-slate-100 dark:hover:bg-slate-700 transition-colors flex items-center gap-2 text-slate-700 dark:text-slate-200"
-                >
-                    <span className="w-2 h-2 rounded-full bg-red-500"></span>
-                    Power Cycle
-                </button>
-
-                <div className="border-t border-slate-100 dark:border-slate-700 my-1"></div>
-
-                {device.status === 'online' || device.status === 'booting' ? (
-                    <button
-                        onClick={() => handleAction('power_off')}
-                        className="px-3 py-2 text-left hover:bg-slate-100 dark:hover:bg-slate-700 transition-colors flex items-center gap-2 text-slate-500 dark:text-slate-300"
-                    >
-                        Power Off
-                    </button>
-                ) : (
-                    <button
-                        onClick={() => handleAction('power_on')}
-                        className="px-3 py-2 text-left hover:bg-slate-100 dark:hover:bg-slate-700 transition-colors flex items-center gap-2 text-green-600 dark:text-green-400 font-semibold"
-                    >
-                        Power On
-                    </button>
+                {(device.type === 'cakepop' || device.type === 'orderpad') && (
+                    <>
+                        {device.status === 'online' || device.status === 'booting' ? (
+                            <button
+                                onClick={() => { triggerAction(device.id, 'power_off'); onClose(); }}
+                                className="px-3 py-2 text-left hover:bg-slate-100 dark:hover:bg-slate-700 transition-colors flex items-center gap-2 text-slate-500 dark:text-slate-300"
+                            >
+                                Power Off
+                            </button>
+                        ) : (
+                            <button
+                                onClick={() => { triggerAction(device.id, 'power_on'); onClose(); }}
+                                className="px-3 py-2 text-left hover:bg-slate-100 dark:hover:bg-slate-700 transition-colors flex items-center gap-2 text-green-600 dark:text-green-400 font-semibold"
+                            >
+                                Power On
+                            </button>
+                        )}
+                        <div className="border-t border-slate-100 dark:border-slate-700 my-1"></div>
+                    </>
                 )}
 
-                <div className="border-t border-slate-100 dark:border-slate-700 my-1"></div>
 
                 <button
                     onClick={() => {

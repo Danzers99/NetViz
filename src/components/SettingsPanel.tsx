@@ -67,6 +67,30 @@ export const SettingsPanel = ({ onClose }: { onClose: () => void }) => {
                     </div>
 
                     <div className="flex items-center justify-between">
+                        <div>
+                            <label className="text-slate-700 dark:text-slate-300 font-medium block">Link Animation</label>
+                            <span className="text-[10px] text-slate-400">Animate links around selected device</span>
+                        </div>
+                        <button
+                            onClick={() => {
+                                const current = settings.enableLinkAnimation;
+                                updateSettings({ enableLinkAnimation: !current });
+                                const store = useAppStore.getState();
+                                if (!current) {
+                                    store.setPacketFlowMode('troubleshoot');
+                                } else {
+                                    store.setPacketFlowMode('off');
+                                }
+                            }}
+                            className={`w-12 h-6 rounded-full transition-colors relative ${settings.enableLinkAnimation ? 'bg-orange-500' : 'bg-slate-200 dark:bg-slate-600'
+                                }`}
+                        >
+                            <div className={`absolute top-1 w-4 h-4 bg-white rounded-full transition-transform ${settings.enableLinkAnimation ? 'left-7' : 'left-1'
+                                }`} />
+                        </button>
+                    </div>
+
+                    <div className="flex items-center justify-between">
                         <label className="text-slate-700 dark:text-slate-300 font-medium">Show Warnings</label>
                         <button
                             onClick={() => updateSettings({ showWarnings: !settings.showWarnings })}

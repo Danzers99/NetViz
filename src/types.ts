@@ -100,6 +100,8 @@ export interface Settings {
     showRoomNames?: boolean;
     userName?: string; // Identity for revisions
     hasSeenIntro?: boolean; // Track if user has seen onboarding
+    enableLinkAnimation?: boolean; // Troubleshoot Focus: animate links around selected device
+    reduceMotion?: boolean; // Override for prefers-reduced-motion
 }
 
 export interface RevisionStats {

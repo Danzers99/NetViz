@@ -4,6 +4,7 @@ import { OrbitControls, Grid, Environment } from '@react-three/drei';
 import { useAppStore } from '../store';
 import { DeviceNode } from './DeviceNode';
 import { Cables } from './Cables';
+import { PacketFlowLayer } from './PacketFlowLayer';
 
 import { Toolbox } from './Toolbox';
 import { WasdControls } from './WasdControls';
@@ -82,6 +83,7 @@ export const Sandbox = () => {
                     <RoomLayer />
                     {/* Hide cables in Layout Mode for cleaner view */}
                     {!layoutMode && <Cables />}
+                    {!layoutMode && <PacketFlowLayer />}
 
                     {devices.map((device) => (
                         <DeviceNode key={device.id} device={device} />
