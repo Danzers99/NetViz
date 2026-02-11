@@ -1,7 +1,6 @@
 import { create } from 'zustand';
 import { validateNetwork } from './validation';
 import { getDeviceDefinition } from './data/deviceDefinitions';
-import { isWifiCapable } from './utils/wifi';
 import { propagatePowerState, updateLinkStatuses, updateConnectionStates, updateWirelessAssociation } from './utils/simulation';
 import { getRoomAt } from './utils/geometry';
 import { findPathToModem, findNeighborLinks } from './utils/packetFlow';

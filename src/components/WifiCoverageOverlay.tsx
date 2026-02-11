@@ -322,7 +322,7 @@ export const WifiCoverageOverlay = ({ device }: WifiCoverageOverlayProps) => {
                 />
             </mesh>
             {isDark && (
-                <line position={[0, 0, 0.06]} ref={outlineRef}>
+                <line position={[0, 0, 0.06]} ref={outlineRef as any}>
                     <bufferGeometry ref={outlineGeoRef} />
                     <lineBasicMaterial color={new THREE.Color(theme.outline[0], theme.outline[1], theme.outline[2])} transparent opacity={0.4} />
                 </line>
