@@ -113,6 +113,54 @@ export const SettingsPanel = ({ onClose }: { onClose: () => void }) => {
                                 }`} />
                         </button>
                     </div>
+
+                    <div className="flex items-center justify-between">
+                        <label className="text-slate-700 dark:text-slate-300 font-medium flex flex-col">
+                            <span>Show Wi-Fi Coverage</span>
+                            <span className="text-[10px] text-slate-400 font-normal">Visual range for APs</span>
+                        </label>
+                        <button
+                            onClick={() => updateSettings({ showWifiCoverage: !settings.showWifiCoverage })}
+                            className={`w-12 h-6 rounded-full transition-colors relative ${settings.showWifiCoverage ? 'bg-orange-500' : 'bg-slate-200 dark:bg-slate-600'
+                                }`}
+                        >
+                            <div className={`absolute top-1 w-4 h-4 bg-white rounded-full transition-transform ${settings.showWifiCoverage ? 'left-7' : 'left-1'
+                                }`} />
+                        </button>
+                    </div>
+                </div>
+
+                <div className="space-y-4">
+                    <h3 className="text-sm font-semibold text-slate-400 uppercase tracking-wider">Project</h3>
+                    <div className="space-y-2">
+                        <label className="text-slate-700 dark:text-slate-300 font-medium text-sm flex justify-between">
+                            <span>Scale Calibration</span>
+                            <span className="text-slate-400 font-normal">1 Grid Unit = {settings.canvasScale || 5} ft</span>
+                        </label>
+                        <div className="flex items-center gap-2">
+                            <input
+                                type="range"
+                                min="1"
+                                max="20"
+                                step="0.5"
+                                value={settings.canvasScale || 5}
+                                onChange={(e) => updateSettings({ canvasScale: parseFloat(e.target.value) })}
+                                className="flex-1 h-2 bg-slate-200 dark:bg-slate-700 rounded-lg appearance-none cursor-pointer accent-orange-500"
+                            />
+                            <input
+                                type="number"
+                                min="1"
+                                max="50"
+                                value={settings.canvasScale || 5}
+                                onChange={(e) => updateSettings({ canvasScale: parseFloat(e.target.value) })}
+                                className="w-12 text-center p-1 text-xs border border-slate-200 dark:border-slate-600 rounded bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-200"
+                            />
+                            <span className="text-xs text-slate-500">ft</span>
+                        </div>
+                        <p className="text-[10px] text-slate-400">
+                            Adjusts the physical scale of the grid for accurate coverage visualization.
+                        </p>
+                    </div>
                 </div>
 
                 <div className="space-y-4">

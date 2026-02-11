@@ -104,6 +104,60 @@ export const DeviceProperties = () => {
                         className="w-full p-2 border border-slate-200 dark:border-slate-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500 text-sm resize-none bg-white dark:bg-slate-700 text-slate-900 dark:text-white"
                     />
                 </div>
+                {/* Wi-Fi Coverage Settings (APs only) */}
+                {device.wifiCoverage && (
+                    <div className="space-y-3 pt-2 border-t border-slate-100 dark:border-slate-700">
+                        <label className="text-sm font-semibold text-slate-700 dark:text-slate-300 flex items-center gap-2">
+                            <span>Wi-Fi Coverage</span>
+                            <span className="text-[10px] bg-slate-100 dark:bg-slate-700 px-1.5 py-0.5 rounded text-slate-500">Visual Only</span>
+                        </label>
+
+                        <div className="space-y-3">
+                            {/* Environment Selector */}
+                            <div className="grid grid-cols-2 gap-2">
+                                {(['indoor', 'outdoor'] as const).map((env) => (
+                                    <button
+                                        key={env}
+                                        onClick={() => updateDevice(device.id, {
+                                            wifiCoverage: { ...device.wifiCoverage!, environment: env }
+                                        })}
+                                        className={`py-1.5 px-3 rounded text-xs font-medium capitalize border transition-all ${device.wifiCoverage!.environment === env
+                                            ? 'bg-blue-50 border-blue-200 text-blue-600 dark:bg-blue-900/20 dark:border-blue-800 dark:text-blue-400'
+                                            : 'bg-white border-slate-200 text-slate-600 hover:bg-slate-50 dark:bg-slate-800 dark:border-slate-600 dark:text-slate-400 dark:hover:bg-slate-700'
+                                            }`}
+                                    >
+                                        {env}
+                                    </button>
+                                ))}
+                            </div>
+
+                            {/* Strength Slider/Segmented Control */}
+                            <div className="space-y-1">
+                                <div className="flex justify-between text-[10px] text-slate-400 uppercase font-semibold tracking-wider">
+                                    <span>Low</span>
+                                    <span>Medium</span>
+                                    <span>High</span>
+                                </div>
+                                <div className="flex bg-slate-100 dark:bg-slate-700 p-0.5 rounded-lg">
+                                    {(['low', 'medium', 'high'] as const).map((strength) => (
+                                        <button
+                                            key={strength}
+                                            onClick={() => updateDevice(device.id, {
+                                                wifiCoverage: { ...device.wifiCoverage!, strength: strength }
+                                            })}
+                                            className={`flex-1 py-1 rounded-md text-xs font-medium capitalize transition-all ${device.wifiCoverage!.strength === strength
+                                                ? 'bg-white dark:bg-slate-600 text-slate-800 dark:text-slate-100 shadow-sm'
+                                                : 'text-slate-500 hover:text-slate-700 dark:hover:text-slate-300'
+                                                }`}
+                                        >
+                                            {strength}
+                                        </button>
+                                    ))}
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                )}
                 {/* Connections */}
                 <div className="space-y-2">
                     <label className="text-sm font-semibold text-slate-700 dark:text-slate-300">Connections</label>

@@ -16,6 +16,8 @@ export const loadSettingsFromStorage = (): Settings => {
                     showWarnings: true,
                     compactWarnings: false,
                     darkMode: false,
+                    showWifiCoverage: false,
+                    canvasScale: 5,
                     ...parsed
                 };
             }
@@ -27,6 +29,8 @@ export const loadSettingsFromStorage = (): Settings => {
         showWarnings: true,
         compactWarnings: false,
         darkMode: false,
+        showWifiCoverage: false,
+        canvasScale: 5,
     };
 };
 

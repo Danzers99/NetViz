@@ -90,6 +90,11 @@ export interface Device {
     };
     // Replaces networkStatus
     connectionState?: ConnectionState;
+    // Visualization
+    wifiCoverage?: {
+        environment: 'indoor' | 'outdoor';
+        strength: 'low' | 'medium' | 'high';
+    };
 }
 
 export interface Settings {
@@ -102,6 +107,8 @@ export interface Settings {
     hasSeenIntro?: boolean; // Track if user has seen onboarding
     enableLinkAnimation?: boolean; // Troubleshoot Focus: animate links around selected device
     reduceMotion?: boolean; // Override for prefers-reduced-motion
+    showWifiCoverage?: boolean; // Visualization: Show AP coverage overlay
+    canvasScale?: number; // Feet per Grid Unit (Default: 5)
 }
 
 export interface RevisionStats {

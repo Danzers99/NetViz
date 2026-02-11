@@ -122,6 +122,8 @@ export const useAppStore = create<AppState>((set, get) => ({
     settings: {
         showDeviceNames: true,
         showRoomNames: true,
+        showWifiCoverage: false,
+        canvasScale: 5,
         ...loadSettingsFromStorage()
     },
     projectInfo: {
@@ -249,6 +251,12 @@ export const useAppStore = create<AppState>((set, get) => ({
         }),
     updateSettings: (newSettings) =>
         set((state) => {
+            // Validate canvasScale if present
+            if (typeof newSettings.canvasScale === 'number') {
+                if (isNaN(newSettings.canvasScale) || newSettings.canvasScale <= 0) {
+                    newSettings.canvasScale = 5;
+                }
+            }
             const updatedSettings = { ...state.settings, ...newSettings };
             saveSettingsToStorage(updatedSettings);
             state.addSessionChange('Settings');
@@ -290,6 +298,18 @@ export const useAppStore = create<AppState>((set, get) => ({
                                             security: 'WPA2-PSK'
                                         }
                                     ]
+                                }
+                            }
+
+                            : {}
+                    ),
+                    ...(
+                        // Add default coverage settings for APs
+                        ['access-point', 'datto-ap440', 'datto-ap62'].includes(type)
+                            ? {
+                                wifiCoverage: {
+                                    environment: 'indoor',
+                                    strength: 'medium'
                                 }
                             }
                             : {}
@@ -782,6 +802,7 @@ export const useAppStore = create<AppState>((set, get) => ({
                 position: state.cameraTarget || [0, 0, 0], // Use camera target
                 ports: generatePorts(type, id),
                 status: (type === 'isp-modem' || type === 'power-outlet') ? 'online' : 'offline',
+                // Initialize Wireless
                 ...(
                     ['access-point', 'datto-ap440', 'datto-ap62', 'zyxel-router', 'cradlepoint-router', 'isp-modem'].includes(type)
                         ? {
@@ -789,7 +810,7 @@ export const useAppStore = create<AppState>((set, get) => ({
                                 enabled: true,
                                 configs: [
                                     {
-                                        ssid: `c0090-${11540000 + Math.floor(Date.now() % 10000)}`, // Use timestamp for uniqueness in addDevice
+                                        ssid: `c0090-${11540000 + Math.floor(Date.now() % 10000)}`,
                                         password: `cake${10000 + nextIndex}`,
                                         hidden: true,
                                         security: 'WPA2-PSK'
@@ -800,7 +821,17 @@ export const useAppStore = create<AppState>((set, get) => ({
                         : {}
                 ),
                 ...(
-                    isWifiCapable(type)
+                    ['access-point', 'datto-ap440', 'datto-ap62'].includes(type)
+                        ? {
+                            wifiCoverage: {
+                                environment: 'indoor',
+                                strength: 'medium'
+                            }
+                        }
+                        : {}
+                ),
+                ...(
+                    ['orderpad', 'cakepop'].includes(type)
                         ? {
                             wireless: { ssid: '', password: '' },
                             connectionState: 'disconnected' as const

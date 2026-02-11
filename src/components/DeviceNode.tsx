@@ -49,6 +49,7 @@ const DEVICE_COLORS: Record<string, string> = {
 import { PortNode } from './PortNode';
 
 import { DeviceActionMenu } from './DeviceActionMenu';
+import { WifiCoverageOverlay } from './WifiCoverageOverlay';
 
 export const DeviceNode = ({ device }: { device: Device }) => {
     const setDraggingDevice = useAppStore((state) => state.setDraggingDevice);
@@ -137,6 +138,8 @@ export const DeviceNode = ({ device }: { device: Device }) => {
             >
 
 
+
+
                 {(() => {
                     const status = device.status;
                     switch (device.type) {
@@ -191,6 +194,9 @@ export const DeviceNode = ({ device }: { device: Device }) => {
                     }
                 })()}
             </group>
+
+            {/* Visual Coverage Overlay */}
+            <WifiCoverageOverlay device={device} />
 
             {showMenu && (
                 <DeviceActionMenu device={device} onClose={() => setShowMenu(false)} />
