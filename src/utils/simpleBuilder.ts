@@ -122,18 +122,54 @@ export function buildSimpleTopology(config: SimpleBuildConfig): BuildResult | Bu
         connections.push([routerWanPort.id, ispLanPort.id]);
     }
 
-    // === CREATE USER DEVICES ===
-    // Map simple device IDs to created device IDs
+    // === TOPOLOGY PLANNING ===
+    // Classify user devices by role
+    const switchConfigs = config.devices.filter(d => d.role === 'switch');
+    const endpointConfigs = config.devices.filter(d => d.role !== 'switch');
+    const lanDeviceCount = endpointConfigs.length;
+
+    // Router LAN capacity
+    const routerLanPortCount = router.ports.filter(p => p.role === 'lan').length;
+
+    // Switch capacity (generic ports; 1 consumed by uplink)
+    const switchDef = DEVICE_DEFINITIONS['unmanaged-switch'];
+    const switchTotalPorts = switchDef.ports.filter(p => p.role === 'generic').length;
+    const switchUsablePorts = switchTotalPorts - 1; // 1 port for uplink
+
+    // Calculate minimum number of switches needed
+    // With n switches directly on router:
+    //   capacity = (routerLanPorts - n) + n * switchUsablePorts
+    //            = routerLanPorts + n * (switchUsablePorts - 1)
+    //   Solve: n >= (lanDeviceCount - routerLanPorts) / (switchUsablePorts - 1)
+    let totalSwitchCount: number;
+    if (lanDeviceCount <= routerLanPortCount && switchConfigs.length === 0) {
+        totalSwitchCount = 0;
+    } else if (lanDeviceCount <= routerLanPortCount) {
+        // Devices fit on router, but user explicitly added switches
+        totalSwitchCount = switchConfigs.length;
+    } else {
+        const denominator = Math.max(switchUsablePorts - 1, 1); // guard div-by-zero
+        const minSwitchesNeeded = Math.ceil(
+            (lanDeviceCount - routerLanPortCount) / denominator
+        );
+        totalSwitchCount = Math.max(switchConfigs.length, minSwitchesNeeded);
+    }
+
+    // How many switches connect directly to router vs daisy-chain
+    const directSwitchCount = Math.min(totalSwitchCount, routerLanPortCount);
+    // Router ports remaining for direct device connections
+    const routerPortsForDevices = routerLanPortCount - directSwitchCount;
+    // How many extra switches to auto-spawn beyond user-added ones
+    const autoSwitchesToSpawn = Math.max(0, totalSwitchCount - switchConfigs.length);
+
+    // === CREATE SWITCHES ===
     const deviceIdMap = new Map<string, string>();
-
-    // First pass: create switches
     const switches: Device[] = [];
-    for (const simpleDevice of config.devices) {
-        if (simpleDevice.role !== 'switch') continue;
 
+    // Create user-specified switches
+    for (const simpleDevice of switchConfigs) {
         const room = roomById.get(simpleDevice.room) || officeRoom;
         const id = generateDeviceId(simpleDevice.type, deviceIndex++);
-
         const device: Device = {
             id,
             type: simpleDevice.type,
@@ -143,36 +179,88 @@ export function buildSimpleTopology(config: SimpleBuildConfig): BuildResult | Bu
             ports: generatePorts(simpleDevice.type, id),
             status: 'online',
         };
-
         devices.push(device);
         switches.push(device);
         deviceIdMap.set(simpleDevice.id, id);
     }
 
-    // Connect first switch to router LAN 1
-    if (switches.length > 0) {
-        const mainSwitch = switches[0];
-        const routerLanPort = allocator.getNextAvailablePort(routerId, config.routerType, ['lan']);
-        const switchPort = allocator.getNextAvailablePort(mainSwitch.id, mainSwitch.type, ['generic']);
+    // Auto-spawn additional switches if needed
+    for (let i = 0; i < autoSwitchesToSpawn; i++) {
+        const id = generateDeviceId('unmanaged-switch', deviceIndex++);
+        const device: Device = {
+            id,
+            type: 'unmanaged-switch',
+            name: `Switch ${switches.length + 1}`,
+            position: [0, 0, 0],
+            roomId: officeRoom.id,
+            ports: generatePorts('unmanaged-switch', id),
+            status: 'online',
+        };
+        devices.push(device);
+        switches.push(device);
+    }
 
-        if (routerLanPort && switchPort) {
-            const routerPort = router.ports.find(p => p.id.endsWith(`-${routerLanPort.portId}`));
-            const swPort = mainSwitch.ports.find(p => p.id.endsWith(`-${switchPort.portId}`));
-            if (routerPort && swPort) {
-                connections.push([routerPort.id, swPort.id]);
-                allocator.allocatePort(routerId, routerLanPort.portId);
-                allocator.allocatePort(mainSwitch.id, switchPort.portId);
+    // === CONNECT ALL SWITCHES TO NETWORK ===
+    // Every switch gets an uplink BEFORE any devices are distributed
+    for (let i = 0; i < switches.length; i++) {
+        const sw = switches[i];
+
+        if (i < directSwitchCount) {
+            // Direct uplink to router LAN port
+            const routerLanPort = allocator.getNextAvailablePort(routerId, config.routerType, ['lan']);
+            const switchPort = allocator.getNextAvailablePort(sw.id, sw.type, ['generic']);
+            if (routerLanPort && switchPort) {
+                const rPort = router.ports.find(p => p.id.endsWith(`-${routerLanPort.portId}`));
+                const sPort = sw.ports.find(p => p.id.endsWith(`-${switchPort.portId}`));
+                if (rPort && sPort) {
+                    connections.push([rPort.id, sPort.id]);
+                    allocator.allocatePort(routerId, routerLanPort.portId);
+                    allocator.allocatePort(sw.id, switchPort.portId);
+                }
+            }
+        } else {
+            // Daisy-chain: connect to the last directly-connected switch
+            const upstreamSwitch = switches[directSwitchCount - 1];
+            const prevPort = allocator.getNextAvailablePort(upstreamSwitch.id, upstreamSwitch.type, ['generic']);
+            const newPort = allocator.getNextAvailablePort(sw.id, sw.type, ['generic']);
+            if (prevPort && newPort) {
+                const pPort = upstreamSwitch.ports.find(p => p.id.endsWith(`-${prevPort.portId}`));
+                const nPort = sw.ports.find(p => p.id.endsWith(`-${newPort.portId}`));
+                if (pPort && nPort) {
+                    connections.push([pPort.id, nPort.id]);
+                    allocator.allocatePort(upstreamSwitch.id, prevPort.portId);
+                    allocator.allocatePort(sw.id, newPort.portId);
+                }
             }
         }
     }
 
-    // Second pass: create endpoints and connect them
-    for (const simpleDevice of config.devices) {
-        if (simpleDevice.role === 'switch') continue;
+    // === DISTRIBUTE DEVICES ===
+    // Track how many devices connected directly to router
+    let routerDirectCount = 0;
 
+    // Helper: get next connection target for a device
+    // Priority: fill remaining router LAN ports, then switch ports
+    function getConnectionTarget(): { device: Device; deviceId: string } | null {
+        // 1. Router still has reserved direct-device ports available
+        if (routerDirectCount < routerPortsForDevices) {
+            return { device: router, deviceId: routerId };
+        }
+
+        // 2. Fill switches in order
+        for (const sw of switches) {
+            if (!allocator.isDeviceFull(sw.id, sw.type)) {
+                return { device: sw, deviceId: sw.id };
+            }
+        }
+
+        return null;
+    }
+
+    // Create endpoints and connect them
+    for (const simpleDevice of endpointConfigs) {
         const room = roomById.get(simpleDevice.room) || officeRoom;
         const id = generateDeviceId(simpleDevice.type, deviceIndex++);
-
         const isAP = simpleDevice.role === 'ap';
 
         const device: Device = {
@@ -199,9 +287,8 @@ export function buildSimpleTopology(config: SimpleBuildConfig): BuildResult | Bu
         devices.push(device);
         deviceIdMap.set(simpleDevice.id, id);
 
-        // Special handling for Access Points - need PoE injector chain
+        // Special handling for Access Points – PoE injector chain
         if (isAP) {
-            // Create PoE injector for this AP
             const poeId = generateDeviceId('poe-injector', deviceIndex++);
             const poeInjector: Device = {
                 id: poeId,
@@ -214,118 +301,68 @@ export function buildSimpleTopology(config: SimpleBuildConfig): BuildResult | Bu
             };
             devices.push(poeInjector);
 
-            // Connect AP to PoE injector (AP ETH → PoE OUT)
+            // AP ETH → PoE OUT
             const apPort = device.ports.find(p => p.role === 'poe_client');
             const poeOutPort = poeInjector.ports.find(p => p.role === 'poe_source');
             if (apPort && poeOutPort) {
                 connections.push([apPort.id, poeOutPort.id]);
             }
 
-            // Connect PoE injector to switch (PoE LAN IN → Switch port)
+            // PoE LAN IN → network target (smart allocation)
             const poeLanPort = poeInjector.ports.find(p => p.role === 'uplink');
-            if (poeLanPort && switches.length > 0) {
-                const targetSwitch = switches[0];
-                const switchPortInfo = allocator.getNextAvailablePort(targetSwitch.id, targetSwitch.type, ['generic']);
-                if (switchPortInfo) {
-                    const swPort = targetSwitch.ports.find(p => p.id.endsWith(`-${switchPortInfo.portId}`));
-                    if (swPort) {
-                        connections.push([poeLanPort.id, swPort.id]);
-                        allocator.allocatePort(targetSwitch.id, switchPortInfo.portId);
-                    }
-                }
-            } else if (poeLanPort) {
-                // No switch - connect to router LAN
-                const routerLanInfo = allocator.getNextAvailablePort(routerId, config.routerType, ['lan']);
-                if (routerLanInfo) {
-                    const rPort = router.ports.find(p => p.id.endsWith(`-${routerLanInfo.portId}`));
-                    if (rPort) {
-                        connections.push([poeLanPort.id, rPort.id]);
-                        allocator.allocatePort(routerId, routerLanInfo.portId);
+            if (poeLanPort) {
+                const target = getConnectionTarget();
+                if (target) {
+                    const targetPortInfo = allocator.getNextAvailablePort(
+                        target.deviceId,
+                        target.device.type,
+                        target.device.type === config.routerType ? ['lan'] : ['generic']
+                    );
+                    if (targetPortInfo) {
+                        const tPort = target.device.ports.find(p => p.id.endsWith(`-${targetPortInfo.portId}`));
+                        if (tPort) {
+                            connections.push([poeLanPort.id, tPort.id]);
+                            allocator.allocatePort(target.deviceId, targetPortInfo.portId);
+                            if (target.deviceId === routerId) routerDirectCount++;
+                        }
                     }
                 }
             }
 
-            // AP is fully wired via PoE - skip normal connection logic
-            continue;
+            continue; // AP fully wired via PoE
         }
 
-        // Determine connection target
-        let targetDevice: Device | null = null;
-        let targetDeviceId: string | null = null;
+        // Regular endpoint: determine connection target
+        let target: { device: Device; deviceId: string } | null = null;
 
         if (simpleDevice.connectTo && deviceIdMap.has(simpleDevice.connectTo)) {
-            // Connect to specified switch
-            targetDeviceId = deviceIdMap.get(simpleDevice.connectTo)!;
-            targetDevice = devices.find(d => d.id === targetDeviceId) || null;
-        } else if (switches.length > 0) {
-            // Auto-connect to first switch with available port
-            for (const sw of switches) {
-                if (!allocator.isDeviceFull(sw.id, sw.type)) {
-                    targetDevice = sw;
-                    targetDeviceId = sw.id;
-                    break;
-                }
-            }
-
-            // All switches full - create a new one
-            if (!targetDevice) {
-                const newSwitchId = generateDeviceId('unmanaged-switch', deviceIndex++);
-                const newSwitch: Device = {
-                    id: newSwitchId,
-                    type: 'unmanaged-switch',
-                    name: `Switch ${switches.length + 1}`,
-                    position: [0, 0, 0],
-                    roomId: room.id,
-                    ports: generatePorts('unmanaged-switch', newSwitchId),
-                    status: 'online',
-                };
-                devices.push(newSwitch);
-                switches.push(newSwitch);
-                targetDevice = newSwitch;
-                targetDeviceId = newSwitchId;
-
-                // Connect new switch to previous switch (cascade)
-                const prevSwitch = switches[switches.length - 2];
-                const prevPort = allocator.getNextAvailablePort(prevSwitch.id, prevSwitch.type, ['generic']);
-                const newPort = allocator.getNextAvailablePort(newSwitchId, 'unmanaged-switch', ['generic']);
-
-                if (prevPort && newPort) {
-                    const pPort = prevSwitch.ports.find(p => p.id.endsWith(`-${prevPort.portId}`));
-                    const nPort = newSwitch.ports.find(p => p.id.endsWith(`-${newPort.portId}`));
-                    if (pPort && nPort) {
-                        connections.push([pPort.id, nPort.id]);
-                        allocator.allocatePort(prevSwitch.id, prevPort.portId);
-                        allocator.allocatePort(newSwitchId, newPort.portId);
-                    }
-                }
-            }
+            // Explicit connection target
+            const tId = deviceIdMap.get(simpleDevice.connectTo)!;
+            const tDev = devices.find(d => d.id === tId);
+            target = tDev ? { device: tDev, deviceId: tId } : getConnectionTarget();
         } else {
-            // No switches - connect to router LAN
-            targetDevice = router;
-            targetDeviceId = routerId;
+            target = getConnectionTarget();
         }
 
         // Make the connection
-        if (targetDevice && targetDeviceId) {
-            // Find source port (ETH port for endpoints)
-            // Roles: access (POS/printers/KDS), poe_client (AP), lan, generic, uplink
+        if (target) {
             const sourcePort = device.ports.find(p =>
                 p.role === 'access' || p.role === 'lan' || p.role === 'generic' ||
                 p.role === 'poe_client' || p.role === 'uplink'
             );
 
-            // Find target port
             const targetPortInfo = allocator.getNextAvailablePort(
-                targetDeviceId,
-                targetDevice.type,
-                targetDevice.type === config.routerType ? ['lan'] : ['generic']
+                target.deviceId,
+                target.device.type,
+                target.device.type === config.routerType ? ['lan'] : ['generic']
             );
 
             if (sourcePort && targetPortInfo) {
-                const tPort = targetDevice.ports.find(p => p.id.endsWith(`-${targetPortInfo.portId}`));
+                const tPort = target.device.ports.find(p => p.id.endsWith(`-${targetPortInfo.portId}`));
                 if (tPort) {
                     connections.push([sourcePort.id, tPort.id]);
-                    allocator.allocatePort(targetDeviceId, targetPortInfo.portId);
+                    allocator.allocatePort(target.deviceId, targetPortInfo.portId);
+                    if (target.deviceId === routerId) routerDirectCount++;
                 }
             }
         }
