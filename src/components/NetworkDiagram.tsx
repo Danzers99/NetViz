@@ -320,7 +320,7 @@ export const NetworkDiagram = ({ onClose }: NetworkDiagramProps) => {
         const bounds = getContentBounds();
 
         // Dev-mode warning when content exceeds original graph bounds
-        if (process.env.NODE_ENV === 'development') {
+        if (import.meta.env.DEV) {
             if (bounds.x < 0 || bounds.y < 0 ||
                 bounds.x + bounds.width > graph.width + EXPORT_PADDING * 2 ||
                 bounds.y + bounds.height > graph.height + EXPORT_PADDING * 2) {
