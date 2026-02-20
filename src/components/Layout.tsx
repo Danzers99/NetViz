@@ -1,6 +1,6 @@
 import { useState, useRef, type ReactNode } from 'react';
 import { useAppStore } from '../store';
-import { LayoutGrid, Settings, HelpCircle, RotateCcw, Save as SaveIcon, FolderOpen, History } from 'lucide-react';
+import { LayoutGrid, Settings, HelpCircle, RotateCcw, Save as SaveIcon, FolderOpen, History, ClipboardList } from 'lucide-react';
 import { Alerts } from './Alerts';
 import { SettingsPanel } from './SettingsPanel';
 import { DeviceProperties } from './DeviceProperties';
@@ -11,6 +11,7 @@ import { useEffect } from 'react';
 import { SaveDialog } from './SaveDialog';
 import { HistoryPanel } from './HistoryPanel';
 import { generateUUID } from '../utils/uuid';
+import { generateTopologySummary, copyToClipboard } from '../utils/exportReport';
 import type { Revision } from '../types';
 
 
@@ -234,6 +235,17 @@ export const Layout = ({ children }: { children: ReactNode }) => {
                             >
                                 <FolderOpen size={20} />
                                 <span className="hidden md:block">Load</span>
+                            </button>
+                            <button
+                                onClick={() => {
+                                    const summary = generateTopologySummary();
+                                    copyToClipboard(summary, 'Network summary copied');
+                                }}
+                                className="w-full flex items-center gap-3 px-3 py-2 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-700 transition-colors font-medium"
+                                title="Copy network summary to clipboard"
+                            >
+                                <ClipboardList size={20} />
+                                <span className="hidden md:block">Copy Summary</span>
                             </button>
                             <button
                                 onClick={() => {

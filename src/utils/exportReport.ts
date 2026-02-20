@@ -1,0 +1,352 @@
+import { useAppStore } from '../store';
+import { getDeviceDefinition } from '../data/deviceDefinitions';
+import type { Device, Port, PortRole } from '../types';
+
+/**
+ * Copy text to clipboard and show a toast notification.
+ */
+export const copyToClipboard = async (text: string, label = 'Copied to clipboard') => {
+    try {
+        await navigator.clipboard.writeText(text);
+        useAppStore.getState().setNotification({ message: label, type: 'success' });
+    } catch {
+        // Fallback for older browsers / insecure contexts
+        const textarea = document.createElement('textarea');
+        textarea.value = text;
+        textarea.style.position = 'fixed';
+        textarea.style.opacity = '0';
+        document.body.appendChild(textarea);
+        textarea.select();
+        document.execCommand('copy');
+        document.body.removeChild(textarea);
+        useAppStore.getState().setNotification({ message: label, type: 'success' });
+    }
+};
+
+// ─── Helpers ────────────────────────────────────────────────
+
+/**
+ * Passive power infrastructure: does not participate in network connectivity.
+ * Excludes PoE injectors (they bridge data + power).
+ */
+const isPowerInfrastructure = (device: Device): boolean => {
+    const def = getDeviceDefinition(device.type);
+    return !!(def.capabilities.isOutlet);
+};
+
+const getConnectedDevice = (port: Port, devices: Device[]): { device: Device; port: Port } | null => {
+    if (!port.connectedTo) return null;
+    for (const d of devices) {
+        const p = d.ports.find(p => p.id === port.connectedTo);
+        if (p) return { device: d, port: p };
+    }
+    return null;
+};
+
+const connectionStateName = (state?: string): string => {
+    switch (state) {
+        case 'online': return 'Online';
+        case 'disconnected': return 'Disconnected';
+        case 'associating_wifi': return 'Associating (Wi-Fi)';
+        case 'auth_failed': return 'Auth Failed';
+        case 'associated_no_ip': return 'No IP';
+        case 'associated_no_internet': return 'No Internet';
+        default: return 'Unknown';
+    }
+};
+
+const formatDate = (): string => {
+    const d = new Date();
+    return d.toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' })
+        + ' ' + d.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' });
+};
+
+// ─── Validation Report ──────────────────────────────────────
+
+export const generateValidationReport = (): string => {
+    const { devices, validationErrors, projectInfo, settings, rooms } = useAppStore.getState();
+
+    const cableCount = Math.floor(devices.reduce((acc, d) => acc + d.ports.filter(p => p.connectedTo).length, 0) / 2);
+
+    // Group devices by display name
+    const typeCounts: Record<string, number> = {};
+    devices.forEach(d => {
+        const def = getDeviceDefinition(d.type);
+        const name = def.displayName;
+        typeCounts[name] = (typeCounts[name] || 0) + 1;
+    });
+    const typeList = Object.entries(typeCounts).map(([name, count]) => `${name} ×${count}`).join(', ');
+
+    const criticalErrors = validationErrors.filter(e => e.severity === 'error');
+    const warnings = validationErrors.filter(e => e.severity === 'warning');
+
+    const lines: string[] = [];
+    lines.push('───────────────────────────────────');
+    lines.push('📋 NetViz Validation Report');
+    lines.push(`Project: ${projectInfo.name || 'Untitled'}`);
+    lines.push(`Date: ${formatDate()}`);
+    if (settings.userName) lines.push(`Author: ${settings.userName}`);
+    lines.push('───────────────────────────────────');
+    lines.push('');
+    lines.push('TOPOLOGY SUMMARY');
+    lines.push(`• Devices: ${devices.length} (${typeList || 'none'})`);
+    lines.push(`• Rooms: ${rooms.length}`);
+    lines.push(`• Cables: ${cableCount}`);
+    lines.push('');
+    lines.push(`ISSUES FOUND: ${validationErrors.length} (${criticalErrors.length} Critical, ${warnings.length} Warnings)`);
+
+    if (criticalErrors.length > 0) {
+        lines.push('');
+        lines.push('❌ CRITICAL');
+        criticalErrors.forEach((e, i) => {
+            lines.push(`  ${i + 1}. ${e.message}`);
+        });
+    }
+
+    if (warnings.length > 0) {
+        lines.push('');
+        lines.push('⚠️ WARNINGS');
+        warnings.forEach((e, i) => {
+            lines.push(`  ${i + 1}. ${e.message}`);
+        });
+    }
+
+    if (validationErrors.length === 0) {
+        lines.push('');
+        lines.push('✅ No issues detected.');
+    }
+
+    lines.push('');
+    lines.push('───────────────────────────────────');
+    lines.push('Generated by NetViz');
+    lines.push('───────────────────────────────────');
+
+    return lines.join('\n');
+};
+
+// ─── Topology Summary ───────────────────────────────────────
+
+export const generateTopologySummary = (): string => {
+    const { devices, validationErrors, projectInfo, rooms } = useAppStore.getState();
+
+    if (devices.length === 0) {
+        return 'No devices in network.';
+    }
+
+    const lines: string[] = [];
+    lines.push('───────────────────────────────────');
+    lines.push(`📡 Network Summary: ${projectInfo.name || 'Untitled'}`);
+    lines.push('───────────────────────────────────');
+
+    // ── 1. STATUS (first) ──
+
+    // Separate network-participant devices from passive power infrastructure
+    const networkDevices = devices.filter(d => !isPowerInfrastructure(d));
+    const powerDevices = devices.filter(d => isPowerInfrastructure(d));
+
+    const criticalErrors = validationErrors.filter(e => e.severity === 'error');
+    const warnings = validationErrors.filter(e => e.severity === 'warning');
+    const onlineCount = networkDevices.filter(d => d.status === 'online').length;
+    const offlineCount = networkDevices.filter(d => d.status === 'offline').length;
+    const cableCount = Math.floor(devices.reduce((acc, d) => acc + d.ports.filter(p => p.connectedTo).length, 0) / 2);
+
+    // Device counts grouped by display name (all devices)
+    const typeCounts: Record<string, number> = {};
+    devices.forEach(d => {
+        const def = getDeviceDefinition(d.type);
+        typeCounts[def.displayName] = (typeCounts[def.displayName] || 0) + 1;
+    });
+    const typeList = Object.entries(typeCounts).map(([name, count]) => `${name} ×${count}`).join(', ');
+
+    lines.push('');
+    lines.push('STATUS');
+    if (criticalErrors.length === 0 && warnings.length === 0) {
+        lines.push('  ✅ No issues detected');
+    } else {
+        lines.push(`  ⚠ ${criticalErrors.length} Critical, ${warnings.length} Warnings`);
+    }
+    lines.push(`  Devices: ${networkDevices.length} (${onlineCount} online, ${offlineCount} offline)${powerDevices.length > 0 ? ` + ${powerDevices.length} power` : ''}`);
+    lines.push(`  Equipment: ${typeList}`);
+    lines.push(`  Rooms: ${rooms.length} | Cables: ${cableCount}`);
+
+    // ── 2. TOPOLOGY (hierarchical tree from actual links) ──
+
+    lines.push('');
+    lines.push('TOPOLOGY');
+
+    const rendered = new Set<string>();
+
+    // Helper: is this a power-only connection? (both sides are power roles)
+    const isPowerRole = (role: PortRole) => role === 'power_input' || role === 'power_source';
+
+    // Build adjacency map from actual port.connectedTo links
+    // Each entry: deviceId -> [{ targetDevice, sourcePortName, targetPortName }]
+    const adjacency = new Map<string, { target: Device; srcPort: string; dstPort: string }[]>();
+
+    for (const device of devices) {
+        if (isPowerInfrastructure(device)) continue; // Skip power outlets entirely
+        for (const port of device.ports) {
+            if (!port.connectedTo) continue;
+            // Find what this port connects to
+            const connected = getConnectedDevice(port, devices);
+            if (!connected) continue;
+            // Skip power-only links (both sides are power roles)
+            if (isPowerRole(port.role) && isPowerRole(connected.port.role)) continue;
+            // Skip connections TO power infrastructure devices
+            if (isPowerInfrastructure(connected.device)) continue;
+
+            if (!adjacency.has(device.id)) adjacency.set(device.id, []);
+            adjacency.get(device.id)!.push({
+                target: connected.device,
+                srcPort: port.name,
+                dstPort: connected.port.name
+            });
+        }
+    }
+
+    // Render a device and its children as a tree
+    const renderNode = (device: Device, indent: number, isLast: boolean, parentPrefixes: string) => {
+        rendered.add(device.id);
+        const def = getDeviceDefinition(device.type);
+        const statusIcon = device.status === 'online' ? '●' : device.status === 'offline' ? '○' : '◌';
+
+        // Build label
+        let label = `${statusIcon} ${device.name}`;
+        if (def.capabilities.isEndpoint) {
+            label += ` [${connectionStateName(device.connectionState)}]`;
+        }
+        const room = device.roomId ? rooms.find(r => r.id === device.roomId) : null;
+        if (room) label += ` (${room.name})`;
+
+        // Build tree connector
+        if (indent === 0) {
+            lines.push(label);
+        } else {
+            const connector = isLast ? '└─ ' : '├─ ';
+            lines.push(`${parentPrefixes}${connector}${label}`);
+        }
+
+        // Gather children: devices connected via data links that haven't been rendered
+        const neighbors = adjacency.get(device.id) || [];
+        const children = neighbors
+            .filter(n => !rendered.has(n.target.id))
+            .map(n => n.target);
+
+        // Deduplicate (a device may be linked via multiple ports)
+        const seen = new Set<string>();
+        const uniqueChildren = children.filter(c => {
+            if (seen.has(c.id)) return false;
+            seen.add(c.id);
+            return true;
+        });
+
+        // Render children
+        const childPrefix = indent === 0 ? '' : parentPrefixes + (isLast ? '   ' : '│  ');
+        uniqueChildren.forEach((child, i) => {
+            const childIsLast = i === uniqueChildren.length - 1;
+            renderNode(child, indent + 1, childIsLast, childPrefix);
+
+            // After rendering an AP, append its wireless clients
+            const childDef = getDeviceDefinition(child.type);
+            if (childDef.capabilities.isAP || childDef.capabilities.wifiHosting) {
+                const wirelessClients = devices.filter(d => {
+                    const dDef = getDeviceDefinition(d.type);
+                    return dDef.capabilities.isMobile && d.wireless?.associatedApId === child.id && !rendered.has(d.id);
+                });
+                const wcPrefix = childPrefix + (childIsLast ? '   ' : '│  ');
+                wirelessClients.forEach((wc, wi) => {
+                    rendered.add(wc.id);
+                    const wcStatus = wc.status === 'online' ? '●' : '○';
+                    const wcState = connectionStateName(wc.connectionState);
+                    const ssid = wc.wireless?.ssid ? ` SSID: ${wc.wireless.ssid}` : '';
+                    const wcIsLast = wi === wirelessClients.length - 1;
+                    const wcConnector = wcIsLast ? '└─ ' : '├─ ';
+                    lines.push(`${wcPrefix}${wcConnector}${wcStatus} ${wc.name} [${wcState}]${ssid} (wireless)`);
+                });
+            }
+        });
+    };
+
+    // Select root devices in priority order: modems → routers → switches → others
+    const rootPriority = (d: Device): number => {
+        const cap = getDeviceDefinition(d.type).capabilities;
+        if (cap.isModem) return 0;
+        if (cap.isRouter) return 1;
+        if (cap.isSwitch) return 2;
+        if (cap.isPoEInjector) return 3;
+        if (cap.isAP) return 4;
+        return 5;
+    };
+
+    // Sort network devices by root priority
+    const sortedDevices = [...devices]
+        .filter(d => !isPowerInfrastructure(d))
+        .sort((a, b) => rootPriority(a) - rootPriority(b));
+
+    // Render trees starting from highest-priority unvisited devices
+    let treeCount = 0;
+    for (const device of sortedDevices) {
+        if (rendered.has(device.id)) continue;
+        // Skip wireless-only devices (they'll be placed under their AP)
+        const def = getDeviceDefinition(device.type);
+        if (def.capabilities.isMobile) continue;
+
+        if (treeCount > 0) lines.push(''); // Blank line between disconnected subtrees
+        renderNode(device, 0, true, '');
+        treeCount++;
+    }
+
+    // Wireless clients not associated with any rendered AP
+    const unrenderedWireless = devices.filter(d => {
+        const def = getDeviceDefinition(d.type);
+        return def.capabilities.isMobile && !rendered.has(d.id);
+    });
+    if (unrenderedWireless.length > 0) {
+        lines.push('');
+        lines.push('  📶 UNASSOCIATED WIRELESS');
+        unrenderedWireless.forEach(client => {
+            rendered.add(client.id);
+            const status = client.status === 'online' ? '●' : '○';
+            const state = connectionStateName(client.connectionState);
+            lines.push(`  ${status} ${client.name} [${state}] (no AP)`);
+        });
+    }
+
+    // Orphaned devices (not connected to anything in the tree)
+    // Exclude power infrastructure — they don't require network paths
+    const orphans = devices.filter(d => !rendered.has(d.id) && !isPowerInfrastructure(d));
+    if (orphans.length > 0) {
+        lines.push('');
+        lines.push('  ⚠ DISCONNECTED');
+        orphans.forEach(d => {
+            const status = d.status === 'online' ? '●' : '○';
+            lines.push(`  ${status} ${d.name} (not connected)`);
+        });
+    }
+
+    // ── 3. VALIDATION ──
+
+    if (validationErrors.length > 0) {
+        lines.push('');
+        lines.push('VALIDATION');
+
+        if (criticalErrors.length > 0) {
+            criticalErrors.forEach((e, i) => {
+                lines.push(`  ❌ ${i + 1}. ${e.message}`);
+            });
+        }
+
+        if (warnings.length > 0) {
+            warnings.forEach((e, i) => {
+                lines.push(`  ⚠ ${i + 1}. ${e.message}`);
+            });
+        }
+    }
+
+    lines.push('');
+    lines.push('───────────────────────────────────');
+    lines.push('Generated by NetViz');
+    lines.push('───────────────────────────────────');
+
+    return lines.join('\n');
+};

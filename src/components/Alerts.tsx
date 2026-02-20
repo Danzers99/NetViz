@@ -1,12 +1,15 @@
 import { useState, useEffect } from 'react';
 import { useAppStore } from '../store';
-import { AlertTriangle, XCircle, ChevronDown, ChevronUp, AlertOctagon } from 'lucide-react';
+import { AlertTriangle, XCircle, ChevronDown, ChevronUp, AlertOctagon, ClipboardCopy, Check } from 'lucide-react';
+import { generateValidationReport, copyToClipboard } from '../utils/exportReport';
 
 export const Alerts = () => {
     const errors = useAppStore((state) => state.validationErrors);
     const settings = useAppStore((state) => state.settings);
     const [isCollapsed, setIsCollapsed] = useState(false);
     const [prevErrorCount, setPrevErrorCount] = useState(0);
+    const [reportCopied, setReportCopied] = useState(false);
+    const [copiedErrorId, setCopiedErrorId] = useState<string | null>(null);
 
     // Auto-expand on new errors
     useEffect(() => {
@@ -21,17 +24,32 @@ export const Alerts = () => {
     const criticalCount = errors.filter(e => e.severity === 'error').length;
     const warningCount = errors.filter(e => e.severity === 'warning').length;
 
+    const handleCopyReport = (e: React.MouseEvent) => {
+        e.stopPropagation();
+        const report = generateValidationReport();
+        copyToClipboard(report, 'Validation report copied');
+        setReportCopied(true);
+        setTimeout(() => setReportCopied(false), 2000);
+    };
+
+    const handleCopyError = (e: React.MouseEvent, errorId: string, message: string) => {
+        e.stopPropagation();
+        copyToClipboard(message, 'Issue copied');
+        setCopiedErrorId(errorId);
+        setTimeout(() => setCopiedErrorId(null), 2000);
+    };
+
     return (
         <div className="flex flex-col gap-2 max-w-md w-full pointer-events-none transition-all duration-300">
             {/* Header / Summary */}
             <div
                 className="bg-white/90 dark:bg-slate-800/90 backdrop-blur-md border border-slate-200 dark:border-slate-700 shadow-xl rounded-xl overflow-hidden pointer-events-auto transition-all"
             >
-                <button
-                    onClick={() => setIsCollapsed(!isCollapsed)}
-                    className="w-full flex items-center justify-between p-3 hover:bg-slate-50 dark:hover:bg-slate-700/50 transition-colors"
-                >
-                    <div className="flex items-center gap-3">
+                <div className="flex items-center justify-between p-3">
+                    <button
+                        onClick={() => setIsCollapsed(!isCollapsed)}
+                        className="flex-1 flex items-center gap-3 hover:opacity-80 transition-opacity"
+                    >
                         <div className={`flex items-center gap-2 px-2 py-1 rounded-md text-xs font-bold uppercase tracking-wider ${criticalCount > 0 ? 'bg-red-100 text-red-700 dark:bg-red-900/40 dark:text-red-300' : 'bg-amber-100 text-amber-700 dark:bg-amber-900/40 dark:text-amber-300'
                             }`}>
                             {criticalCount > 0 ? <AlertOctagon size={14} /> : <AlertTriangle size={14} />}
@@ -42,9 +60,26 @@ export const Alerts = () => {
                                 {criticalCount} Critical, {warningCount} Warnings
                             </span>
                         )}
+                    </button>
+                    <div className="flex items-center gap-1">
+                        <button
+                            onClick={handleCopyReport}
+                            className="p-1.5 rounded-md hover:bg-slate-100 dark:hover:bg-slate-700 transition-colors"
+                            title="Copy validation report"
+                        >
+                            {reportCopied
+                                ? <Check size={14} className="text-green-500" />
+                                : <ClipboardCopy size={14} className="text-slate-400 hover:text-slate-600 dark:hover:text-slate-200" />
+                            }
+                        </button>
+                        <button
+                            onClick={() => setIsCollapsed(!isCollapsed)}
+                            className="p-1.5 rounded-md hover:bg-slate-100 dark:hover:bg-slate-700 transition-colors"
+                        >
+                            {isCollapsed ? <ChevronDown size={16} className="text-slate-400" /> : <ChevronUp size={16} className="text-slate-400" />}
+                        </button>
                     </div>
-                    {isCollapsed ? <ChevronDown size={16} className="text-slate-400" /> : <ChevronUp size={16} className="text-slate-400" />}
-                </button>
+                </div>
 
                 {/* List */}
                 {!isCollapsed && (
@@ -52,7 +87,7 @@ export const Alerts = () => {
                         {errors.map((error) => (
                             <div
                                 key={error.id}
-                                className={`border-t border-slate-100 dark:border-slate-700 transition-colors hover:bg-slate-50 dark:hover:bg-slate-700/50 ${settings.compactWarnings ? 'p-3' : 'p-4'
+                                className={`group border-t border-slate-100 dark:border-slate-700 transition-colors hover:bg-slate-50 dark:hover:bg-slate-700/50 ${settings.compactWarnings ? 'p-3' : 'p-4'
                                     } ${settings.darkMode ? 'text-slate-300' : 'text-slate-700'}`}
                             >
                                 <div className="flex items-start gap-3">
@@ -72,6 +107,16 @@ export const Alerts = () => {
                                             {error.message}
                                         </p>
                                     </div>
+                                    <button
+                                        onClick={(e) => handleCopyError(e, error.id, error.message)}
+                                        className="shrink-0 mt-0.5 p-1 rounded opacity-0 group-hover:opacity-100 transition-opacity hover:bg-slate-200 dark:hover:bg-slate-600"
+                                        title="Copy this issue"
+                                    >
+                                        {copiedErrorId === error.id
+                                            ? <Check size={14} className="text-green-500" />
+                                            : <ClipboardCopy size={14} className="text-slate-400" />
+                                        }
+                                    </button>
                                 </div>
                             </div>
                         ))}
