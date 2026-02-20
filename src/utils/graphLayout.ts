@@ -250,3 +250,81 @@ export function buildNetworkGraph(
         height: Math.max(totalHeight, 300),
     };
 }
+
+// ─── Auto-Connect Port Selection ────────────────────────────
+
+/** Roles that are never auto-selected for data connections */
+const EXCLUDED_ROLES: Set<string> = new Set(['power_input', 'power_source', 'wan']);
+
+/** Priority score for a source→target role pair (lower = better) */
+function pairScore(srcRole: PortRole, dstRole: PortRole): number {
+    if (srcRole === 'lan' && dstRole === 'access') return 0;
+    if (srcRole === 'access' && dstRole === 'lan') return 0;
+    if (srcRole === 'lan' && dstRole === 'uplink') return 1;
+    if (srcRole === 'uplink' && dstRole === 'lan') return 1;
+    if (srcRole === 'lan' && dstRole === 'generic') return 2;
+    if (srcRole === 'generic' && dstRole === 'lan') return 2;
+    if (srcRole === 'lan' && dstRole === 'poe_client') return 2;
+    if (srcRole === 'poe_client' && dstRole === 'lan') return 2;
+    if (srcRole === 'generic' && dstRole === 'access') return 3;
+    if (srcRole === 'access' && dstRole === 'generic') return 3;
+    if (srcRole === 'generic' && dstRole === 'generic') return 4;
+    if (srcRole === 'generic' && dstRole === 'uplink') return 4;
+    if (srcRole === 'uplink' && dstRole === 'generic') return 4;
+    if (srcRole === 'poe_source' && dstRole === 'poe_client') return 5;
+    if (srcRole === 'poe_client' && dstRole === 'poe_source') return 5;
+    return 10; // fallback — any unrecognized combo
+}
+
+/**
+ * Find the best available port pair to auto-connect two devices.
+ * Returns port IDs or an error message.
+ */
+export function findAutoConnectPorts(
+    deviceA: Device,
+    deviceB: Device
+): { portIdA: string; portIdB: string } | { error: string } {
+    // Already connected?
+    for (const pa of deviceA.ports) {
+        if (!pa.connectedTo) continue;
+        for (const pb of deviceB.ports) {
+            if (pa.connectedTo === pb.id) {
+                return { error: `${deviceA.name} and ${deviceB.name} are already connected.` };
+            }
+        }
+    }
+
+    // Gather free data ports
+    const freePorts = (device: Device) =>
+        device.ports.filter(p => !p.connectedTo && !EXCLUDED_ROLES.has(p.role));
+
+    const freeA = freePorts(deviceA);
+    const freeB = freePorts(deviceB);
+
+    if (freeA.length === 0) {
+        return { error: `${deviceA.name} has no available data ports.` };
+    }
+    if (freeB.length === 0) {
+        return { error: `${deviceB.name} has no available data ports.` };
+    }
+
+    // Find the best-scoring pair
+    let bestScore = Infinity;
+    let bestPair: { portIdA: string; portIdB: string } | null = null;
+
+    for (const pa of freeA) {
+        for (const pb of freeB) {
+            const score = pairScore(pa.role, pb.role);
+            if (score < bestScore) {
+                bestScore = score;
+                bestPair = { portIdA: pa.id, portIdB: pb.id };
+            }
+        }
+    }
+
+    if (!bestPair) {
+        return { error: 'No compatible port combination found.' };
+    }
+
+    return bestPair;
+}
