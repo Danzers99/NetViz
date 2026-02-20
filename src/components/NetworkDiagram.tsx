@@ -14,6 +14,7 @@ import { getDeviceDefinition } from '../data/deviceDefinitions';
 // ─── Constants ──────────────────────────────────────────────
 
 const NODE_RADIUS = 22;
+const EXPORT_PADDING = 40;
 
 const CATEGORY_COLORS: Record<string, { fill: string; stroke: string }> = {
     infra: { fill: '#3b82f6', stroke: '#2563eb' },
@@ -128,7 +129,7 @@ export const NetworkDiagram = ({ onClose }: NetworkDiagramProps) => {
     const [transform, setTransform] = useState({ x: 0, y: 0, scale: 1 });
     const [isPanning, setIsPanning] = useState(false);
     const panStart = useRef({ x: 0, y: 0 });
-    const svgRef = useRef<SVGSVGElement>(null);
+
     const containerRef = useRef<HTMLDivElement>(null);
 
     // Tooltip
@@ -295,17 +296,92 @@ export const NetworkDiagram = ({ onClose }: NetworkDiagramProps) => {
     const zoomIn = () => setTransform(prev => ({ ...prev, scale: Math.min(prev.scale * 1.25, 4) }));
     const zoomOut = () => setTransform(prev => ({ ...prev, scale: Math.max(prev.scale * 0.8, 0.2) }));
 
+    // ── Content bounds (for export) ──
+    const getContentBounds = useCallback(() => {
+        let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity;
+        for (const node of graph.nodes) {
+            const pos = getNodePos(node);
+            minX = Math.min(minX, pos.x - NODE_RADIUS);
+            minY = Math.min(minY, pos.y - NODE_RADIUS);
+            maxX = Math.max(maxX, pos.x + NODE_RADIUS);
+            maxY = Math.max(maxY, pos.y + NODE_RADIUS + 20); // label below node
+        }
+        return {
+            x: minX - EXPORT_PADDING,
+            y: minY - EXPORT_PADDING,
+            width: (maxX - minX) + EXPORT_PADDING * 2,
+            height: (maxY - minY) + EXPORT_PADDING * 2,
+        };
+    }, [graph.nodes, getNodePos]);
+
     // ── Export PNG ──
     const exportPNG = useCallback(() => {
-        if (!svgRef.current) return;
-        const svgEl = svgRef.current;
-        const serializer = new XMLSerializer();
-        const svgString = serializer.serializeToString(svgEl);
+        if (graph.nodes.length === 0) return;
+        const bounds = getContentBounds();
 
+        // Dev-mode warning when content exceeds original graph bounds
+        if (process.env.NODE_ENV === 'development') {
+            if (bounds.x < 0 || bounds.y < 0 ||
+                bounds.x + bounds.width > graph.width + EXPORT_PADDING * 2 ||
+                bounds.y + bounds.height > graph.height + EXPORT_PADDING * 2) {
+                console.warn('[NetViz Export] Content bounds exceed original graph layout.',
+                    { bounds, graphWidth: graph.width, graphHeight: graph.height });
+            }
+        }
+
+        // Build SVG string dynamically with computed bounds
+        const _bg = darkMode ? '#0f172a' : '#f8fafc';
+        const _edge = darkMode ? '#475569' : '#94a3b8';
+        const _edgeLabel = darkMode ? '#94a3b8' : '#64748b';
+        const _label = darkMode ? '#e2e8f0' : '#1e293b';
+
+        let svgParts: string[] = [];
+        svgParts.push(
+            `<svg xmlns="http://www.w3.org/2000/svg" width="${bounds.width}" height="${bounds.height}"`,
+            ` viewBox="${bounds.x} ${bounds.y} ${bounds.width} ${bounds.height}">`,
+            `<rect x="${bounds.x}" y="${bounds.y}" width="${bounds.width}" height="${bounds.height}" fill="${_bg}"/>`
+        );
+
+        // Edges
+        for (const edge of graph.edges) {
+            const srcNode = graph.nodes.find(n => n.id === edge.sourceId);
+            const dstNode = graph.nodes.find(n => n.id === edge.targetId);
+            if (!srcNode || !dstNode) continue;
+            const src = getNodePos(srcNode);
+            const dst = getNodePos(dstNode);
+            const midX = (src.x + dst.x) / 2;
+            const midY = (src.y + dst.y) / 2;
+            svgParts.push(
+                `<line x1="${src.x}" y1="${src.y}" x2="${dst.x}" y2="${dst.y}" stroke="${_edge}" stroke-width="2"/>`,
+                `<text x="${midX}" y="${midY - 6}" text-anchor="middle" font-size="9" fill="${_edgeLabel}">${edge.sourcePort} → ${edge.targetPort}</text>`
+            );
+        }
+
+        // Nodes
+        for (const node of graph.nodes) {
+            const colors = CATEGORY_COLORS[node.category] || CATEGORY_COLORS.infra;
+            const eff = getEffectiveStatus(node);
+            const pos = getNodePos(node);
+            const abbrev = getDeviceDefinition(node.type as any).displayName.split(' ').map((w: string) => w[0]).join('');
+            svgParts.push(
+                `<circle cx="${pos.x}" cy="${pos.y}" r="${NODE_RADIUS}" fill="${colors.fill}" stroke="${colors.stroke}" stroke-width="2.5" opacity="0.95"/>`,
+                `<circle cx="${pos.x + NODE_RADIUS - 4}" cy="${pos.y - NODE_RADIUS + 4}" r="5" fill="${eff.color}" stroke="${_bg}" stroke-width="2"/>`,
+                `<text x="${pos.x}" y="${pos.y + NODE_RADIUS + 14}" text-anchor="middle" font-size="11" font-weight="500" fill="${_label}">${node.label}</text>`,
+                `<text x="${pos.x}" y="${pos.y + 1}" text-anchor="middle" dominant-baseline="central" font-size="8" font-weight="600" fill="#ffffff">${abbrev}</text>`
+            );
+        }
+
+        // Watermark
+        svgParts.push(
+            `<text x="${bounds.x + bounds.width - 10}" y="${bounds.y + bounds.height - 10}" text-anchor="end" font-size="10" fill="${_edgeLabel}" opacity="0.5">Generated by NetViz</text>`
+        );
+        svgParts.push('</svg>');
+
+        const svgString = svgParts.join('');
         const canvas = document.createElement('canvas');
         const scaleFactor = 2;
-        canvas.width = graph.width * scaleFactor;
-        canvas.height = graph.height * scaleFactor;
+        canvas.width = bounds.width * scaleFactor;
+        canvas.height = bounds.height * scaleFactor;
         const ctx = canvas.getContext('2d');
         if (!ctx) return;
 
@@ -314,7 +390,7 @@ export const NetworkDiagram = ({ onClose }: NetworkDiagramProps) => {
         const url = URL.createObjectURL(svgBlob);
 
         img.onload = () => {
-            ctx.fillStyle = darkMode ? '#0f172a' : '#f8fafc';
+            ctx.fillStyle = _bg;
             ctx.fillRect(0, 0, canvas.width, canvas.height);
             ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
             URL.revokeObjectURL(url);
@@ -329,7 +405,7 @@ export const NetworkDiagram = ({ onClose }: NetworkDiagramProps) => {
             document.body.removeChild(a);
         };
         img.src = url;
-    }, [graph.width, graph.height, darkMode, projectName]);
+    }, [graph, getContentBounds, getNodePos, darkMode, projectName]);
 
     // ── Keyboard ──
     useEffect(() => {
@@ -574,64 +650,7 @@ export const NetworkDiagram = ({ onClose }: NetworkDiagramProps) => {
                             </g>
                         </svg>
 
-                        {/* Hidden export SVG */}
-                        <div style={{ position: 'absolute', left: -99999, top: -99999, width: 0, height: 0, overflow: 'hidden', pointerEvents: 'none' }}>
-                            <svg
-                                ref={svgRef}
-                                width={graph.width}
-                                height={graph.height}
-                                viewBox={`0 0 ${graph.width} ${graph.height}`}
-                                xmlns="http://www.w3.org/2000/svg"
-                            >
-                                <rect width={graph.width} height={graph.height} fill={bgColor} />
-                                {graph.edges.map((edge, i) => {
-                                    const srcNode = graph.nodes.find(n => n.id === edge.sourceId);
-                                    const dstNode = graph.nodes.find(n => n.id === edge.targetId);
-                                    if (!srcNode || !dstNode) return null;
-                                    const src = getNodePos(srcNode);
-                                    const dst = getNodePos(dstNode);
-                                    const midX = (src.x + dst.x) / 2;
-                                    const midY = (src.y + dst.y) / 2;
-                                    return (
-                                        <g key={`exp-edge-${i}`}>
-                                            <line x1={src.x} y1={src.y} x2={dst.x} y2={dst.y}
-                                                stroke={edgeColor} strokeWidth={2} />
-                                            <text x={midX} y={midY - 6} textAnchor="middle"
-                                                fontSize={9} fill={edgeLabelColor}>
-                                                {edge.sourcePort} → {edge.targetPort}
-                                            </text>
-                                        </g>
-                                    );
-                                })}
-                                {graph.nodes.map(node => {
-                                    const colors = CATEGORY_COLORS[node.category] || CATEGORY_COLORS.infra;
-                                    const eff = getEffectiveStatus(node);
-                                    const pos = getNodePos(node);
-                                    return (
-                                        <g key={`exp-${node.id}`}>
-                                            <circle cx={pos.x} cy={pos.y} r={NODE_RADIUS}
-                                                fill={colors.fill} stroke={colors.stroke}
-                                                strokeWidth={2.5} opacity={0.95} />
-                                            <circle cx={pos.x + NODE_RADIUS - 4} cy={pos.y - NODE_RADIUS + 4}
-                                                r={5} fill={eff.color} stroke={bgColor} strokeWidth={2} />
-                                            <text x={pos.x} y={pos.y + NODE_RADIUS + 14}
-                                                textAnchor="middle" fontSize={11} fontWeight="500" fill={labelColor}>
-                                                {node.label}
-                                            </text>
-                                            <text x={pos.x} y={pos.y + 1}
-                                                textAnchor="middle" dominantBaseline="central"
-                                                fontSize={8} fontWeight="600" fill="#ffffff">
-                                                {getDeviceDefinition(node.type as any).displayName.split(' ').map(w => w[0]).join('')}
-                                            </text>
-                                        </g>
-                                    );
-                                })}
-                                <text x={graph.width - 10} y={graph.height - 10}
-                                    textAnchor="end" fontSize={10} fill={edgeLabelColor} opacity={0.5}>
-                                    Generated by NetViz
-                                </text>
-                            </svg>
-                        </div>
+
                     </>
                 )}
 
