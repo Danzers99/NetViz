@@ -1,6 +1,7 @@
 import { useState, useRef, type ReactNode } from 'react';
 import { useAppStore } from '../store';
-import { LayoutGrid, Settings, HelpCircle, RotateCcw, Save as SaveIcon, FolderOpen, History, ClipboardList } from 'lucide-react';
+import { LayoutGrid, Settings, HelpCircle, RotateCcw, Save as SaveIcon, FolderOpen, History, ClipboardList, Network } from 'lucide-react';
+import { NetworkDiagram } from './NetworkDiagram';
 import { Alerts } from './Alerts';
 import { SettingsPanel } from './SettingsPanel';
 import { DeviceProperties } from './DeviceProperties';
@@ -34,6 +35,7 @@ export const Layout = ({ children }: { children: ReactNode }) => {
     // showHistory moved to global store
     const [showSaveDialog, setShowSaveDialog] = useState(false);
     const [pendingAutoSummary, setPendingAutoSummary] = useState('');
+    const [showDiagram, setShowDiagram] = useState(false);
 
     const fileInputRef = useRef<HTMLInputElement>(null);
     const lastSavedDevicesRef = useRef<string>('');
@@ -178,6 +180,7 @@ export const Layout = ({ children }: { children: ReactNode }) => {
 
             {isSettingsOpen && <SettingsPanel onClose={() => setSettingsOpen(false)} />}
             {isHistoryOpen && step === 'sandbox' && <HistoryPanel onClose={() => setHistoryOpen(false)} />}
+            {showDiagram && <NetworkDiagram onClose={() => setShowDiagram(false)} />}
 
             <DeviceProperties />
 
@@ -246,6 +249,14 @@ export const Layout = ({ children }: { children: ReactNode }) => {
                             >
                                 <ClipboardList size={20} />
                                 <span className="hidden md:block">Copy Summary</span>
+                            </button>
+                            <button
+                                onClick={() => setShowDiagram(true)}
+                                className="w-full flex items-center gap-3 px-3 py-2 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-700 transition-colors font-medium"
+                                title="View 2D network diagram"
+                            >
+                                <Network size={20} />
+                                <span className="hidden md:block">View Diagram</span>
                             </button>
                             <button
                                 onClick={() => {
