@@ -10,6 +10,7 @@ import { X, Download, ZoomIn, ZoomOut, Link2 } from 'lucide-react';
 import { useAppStore } from '../store';
 import { buildNetworkGraph, findAutoConnectPorts, type GraphNode } from '../utils/graphLayout';
 import { getDeviceDefinition } from '../data/deviceDefinitions';
+import { getNetworkStatus } from '../utils/deviceStatus';
 
 // ─── Constants ──────────────────────────────────────────────
 
@@ -24,39 +25,7 @@ const CATEGORY_COLORS: Record<string, { fill: string; stroke: string }> = {
     power: { fill: '#6b7280', stroke: '#4b5563' },
 };
 
-// ─── Effective Status (unified dot + tooltip) ───────────────
-
-interface EffectiveStatus {
-    color: string;
-    label: string;
-}
-
-function getEffectiveStatus(node: GraphNode): EffectiveStatus {
-    // If device is not powered on, that takes priority
-    if (node.status === 'offline') return { color: '#6b7280', label: 'offline' };
-    if (node.status === 'booting') return { color: '#f59e0b', label: 'booting' };
-    if (node.status === 'error') return { color: '#ef4444', label: 'error' };
-
-    // Device is powered (status === 'online') — use connectionState
-    switch (node.connectionState) {
-        case 'online':
-            return { color: '#22c55e', label: 'online' };
-        case 'associated_no_internet':
-            return { color: '#f59e0b', label: 'no internet' };
-        case 'associated_no_ip':
-            return { color: '#f59e0b', label: 'no IP' };
-        case 'associating_wifi':
-            return { color: '#f59e0b', label: 'associating' };
-        case 'auth_failed':
-            return { color: '#ef4444', label: 'auth failed' };
-        case 'disconnected':
-            return { color: '#ef4444', label: 'disconnected' };
-        default:
-            // connectionState undefined (infra devices like routers/switches)
-            // If powered on, they're active
-            return { color: '#22c55e', label: 'online' };
-    }
-}
+// ─── Effective Status (uses shared deviceStatus utility) ────
 
 // ─── Helper: Device icon ────────────────────────────────────
 
@@ -84,7 +53,7 @@ interface TooltipData {
 
 const Tooltip = ({ data }: { data: TooltipData }) => {
     const def = getDeviceDefinition(data.node.type as any);
-    const eff = getEffectiveStatus(data.node);
+    const eff = getNetworkStatus(data.node.connectionState);
     return (
         <div
             className="fixed z-[100] pointer-events-none px-3 py-2 rounded-lg shadow-xl text-sm max-w-xs"
@@ -360,7 +329,7 @@ export const NetworkDiagram = ({ onClose }: NetworkDiagramProps) => {
         // Nodes
         for (const node of graph.nodes) {
             const colors = CATEGORY_COLORS[node.category] || CATEGORY_COLORS.infra;
-            const eff = getEffectiveStatus(node);
+            const eff = getNetworkStatus(node.connectionState);
             const pos = getNodePos(node);
             const abbrev = getDeviceDefinition(node.type as any).displayName.split(' ').map((w: string) => w[0]).join('');
             svgParts.push(
@@ -559,7 +528,7 @@ export const NetworkDiagram = ({ onClose }: NetworkDiagramProps) => {
                                 {/* Nodes */}
                                 {graph.nodes.map(node => {
                                     const colors = CATEGORY_COLORS[node.category] || CATEGORY_COLORS.infra;
-                                    const eff = getEffectiveStatus(node);
+                                    const eff = getNetworkStatus(node.connectionState);
                                     const icon = deviceIcon(node.type);
                                     const pos = getNodePos(node);
                                     const isSelected = selectedNodeId === node.id;
