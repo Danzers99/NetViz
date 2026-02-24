@@ -1,13 +1,75 @@
-import { X, Settings as SettingsIcon, Play } from 'lucide-react';
+import { useState } from 'react';
+import { X, Settings as SettingsIcon, Play, ChevronDown, ChevronRight } from 'lucide-react';
 import { useAppStore } from '../store';
+
+interface SectionProps {
+    title: string;
+    defaultOpen?: boolean;
+    children: React.ReactNode;
+}
+
+const CollapsibleSection = ({ title, defaultOpen = true, children }: SectionProps) => {
+    const [open, setOpen] = useState(defaultOpen);
+
+    return (
+        <div>
+            <button
+                onClick={() => setOpen(!open)}
+                className="w-full flex items-center justify-between py-1.5 group cursor-pointer"
+            >
+                <h3 className="text-xs font-semibold text-slate-400 uppercase tracking-wider select-none">
+                    {title}
+                </h3>
+                <span className="text-slate-400 group-hover:text-slate-500 transition-colors">
+                    {open ? <ChevronDown size={14} /> : <ChevronRight size={14} />}
+                </span>
+            </button>
+            <div
+                className={`overflow-hidden transition-all duration-200 ease-in-out ${open ? 'max-h-[600px] opacity-100 mt-3' : 'max-h-0 opacity-0'
+                    }`}
+            >
+                <div className="space-y-3">
+                    {children}
+                </div>
+            </div>
+        </div>
+    );
+};
+
+interface ToggleRowProps {
+    label: string;
+    description?: string;
+    shortcut?: string;
+    active: boolean;
+    onToggle: () => void;
+}
+
+const ToggleRow = ({ label, description, shortcut, active, onToggle }: ToggleRowProps) => (
+    <div className="flex items-center justify-between">
+        <div className="min-w-0 mr-3">
+            <label className="text-slate-700 dark:text-slate-300 text-sm font-medium block">{label}</label>
+            {description && <span className="text-[10px] text-slate-400 leading-tight">{description}</span>}
+            {shortcut && <span className="text-[10px] text-slate-400 font-mono">{shortcut}</span>}
+        </div>
+        <button
+            onClick={onToggle}
+            className={`w-11 h-6 rounded-full transition-colors relative flex-shrink-0 ${active ? 'bg-orange-500' : 'bg-slate-200 dark:bg-slate-600'
+                }`}
+        >
+            <div className={`absolute top-1 w-4 h-4 bg-white rounded-full transition-transform shadow-sm ${active ? 'left-6' : 'left-1'
+                }`} />
+        </button>
+    </div>
+);
 
 export const SettingsPanel = ({ onClose }: { onClose: () => void }) => {
     const settings = useAppStore((state) => state.settings);
     const updateSettings = useAppStore((state) => state.updateSettings);
 
     return (
-        <div className="fixed inset-y-0 right-0 w-80 bg-white dark:bg-slate-800 shadow-2xl z-50 transform transition-transform duration-300 ease-in-out border-l border-slate-200 dark:border-slate-700">
-            <div className="flex items-center justify-between p-4 border-b border-slate-100 dark:border-slate-700 bg-slate-50 dark:bg-slate-800/50">
+        <div className="fixed inset-y-0 right-0 w-80 bg-white dark:bg-slate-800 shadow-2xl z-50 transform transition-transform duration-300 ease-in-out border-l border-slate-200 dark:border-slate-700 flex flex-col">
+            {/* Fixed Header */}
+            <div className="flex items-center justify-between p-4 border-b border-slate-100 dark:border-slate-700 bg-slate-50 dark:bg-slate-800/50 flex-shrink-0">
                 <div className="flex items-center gap-2 text-slate-800 dark:text-slate-100">
                     <SettingsIcon size={20} />
                     <h2 className="font-bold text-lg">Settings</h2>
@@ -20,118 +82,64 @@ export const SettingsPanel = ({ onClose }: { onClose: () => void }) => {
                 </button>
             </div>
 
-            <div className="p-6 space-y-8">
-                <div className="space-y-4">
-                    <h3 className="text-sm font-semibold text-slate-400 uppercase tracking-wider">Visuals</h3>
+            {/* Scrollable Body */}
+            <div className="flex-1 overflow-y-auto p-5 space-y-5">
+                {/* ── Visuals ── */}
+                <CollapsibleSection title="Visuals">
+                    <ToggleRow
+                        label="Device Names"
+                        shortcut="Shortcut: N"
+                        active={!!settings.showDeviceNames}
+                        onToggle={() => settings.showDeviceNames !== undefined && useAppStore.getState().toggleShowDeviceNames()}
+                    />
+                    <ToggleRow
+                        label="Room Names"
+                        shortcut="Shortcut: Shift + R"
+                        active={!!settings.showRoomNames}
+                        onToggle={() => settings.showRoomNames !== undefined && useAppStore.getState().toggleShowRoomNames()}
+                    />
+                    <ToggleRow
+                        label="Dark Mode"
+                        active={!!settings.darkMode}
+                        onToggle={() => updateSettings({ darkMode: !settings.darkMode })}
+                    />
+                    <ToggleRow
+                        label="Link Animation"
+                        description="Animate links around selected device"
+                        active={!!settings.enableLinkAnimation}
+                        onToggle={() => {
+                            const current = settings.enableLinkAnimation;
+                            updateSettings({ enableLinkAnimation: !current });
+                            const store = useAppStore.getState();
+                            if (!current) {
+                                store.setPacketFlowMode('troubleshoot');
+                            } else {
+                                store.setPacketFlowMode('off');
+                            }
+                        }}
+                    />
+                    <ToggleRow
+                        label="Show Warnings"
+                        active={!!settings.showWarnings}
+                        onToggle={() => updateSettings({ showWarnings: !settings.showWarnings })}
+                    />
+                    <ToggleRow
+                        label="Compact Warnings"
+                        active={!!settings.compactWarnings}
+                        onToggle={() => updateSettings({ compactWarnings: !settings.compactWarnings })}
+                    />
+                    <ToggleRow
+                        label="Show Wi-Fi Coverage"
+                        description="Visual range for APs"
+                        active={!!settings.showWifiCoverage}
+                        onToggle={() => updateSettings({ showWifiCoverage: !settings.showWifiCoverage })}
+                    />
+                </CollapsibleSection>
 
-                    <div className="flex items-center justify-between">
-                        <div>
-                            <label className="text-slate-700 dark:text-slate-300 font-medium block">Device Names</label>
-                            <span className="text-[10px] text-slate-400 font-mono">Shortcut: N</span>
-                        </div>
-                        <button
-                            onClick={() => settings.showDeviceNames !== undefined && useAppStore.getState().toggleShowDeviceNames()}
-                            className={`w-12 h-6 rounded-full transition-colors relative ${settings.showDeviceNames ? 'bg-orange-500' : 'bg-slate-200 dark:bg-slate-600'
-                                }`}
-                        >
-                            <div className={`absolute top-1 w-4 h-4 bg-white rounded-full transition-transform ${settings.showDeviceNames ? 'left-7' : 'left-1'
-                                }`} />
-                        </button>
-                    </div>
+                <hr className="border-slate-100 dark:border-slate-700" />
 
-                    <div className="flex items-center justify-between">
-                        <div>
-                            <label className="text-slate-700 dark:text-slate-300 font-medium block">Room Names</label>
-                            <span className="text-[10px] text-slate-400 font-mono">Shortcut: Shift + R</span>
-                        </div>
-                        <button
-                            onClick={() => settings.showRoomNames !== undefined && useAppStore.getState().toggleShowRoomNames()}
-                            className={`w-12 h-6 rounded-full transition-colors relative ${settings.showRoomNames ? 'bg-orange-500' : 'bg-slate-200 dark:bg-slate-600'
-                                }`}
-                        >
-                            <div className={`absolute top-1 w-4 h-4 bg-white rounded-full transition-transform ${settings.showRoomNames ? 'left-7' : 'left-1'
-                                }`} />
-                        </button>
-                    </div>
-
-                    <div className="flex items-center justify-between">
-                        <label className="text-slate-700 dark:text-slate-300 font-medium">Dark Mode</label>
-                        <button
-                            onClick={() => updateSettings({ darkMode: !settings.darkMode })}
-                            className={`w-12 h-6 rounded-full transition-colors relative ${settings.darkMode ? 'bg-orange-500' : 'bg-slate-200 dark:bg-slate-600'
-                                }`}
-                        >
-                            <div className={`absolute top-1 w-4 h-4 bg-white rounded-full transition-transform ${settings.darkMode ? 'left-7' : 'left-1'
-                                }`} />
-                        </button>
-                    </div>
-
-                    <div className="flex items-center justify-between">
-                        <div>
-                            <label className="text-slate-700 dark:text-slate-300 font-medium block">Link Animation</label>
-                            <span className="text-[10px] text-slate-400">Animate links around selected device</span>
-                        </div>
-                        <button
-                            onClick={() => {
-                                const current = settings.enableLinkAnimation;
-                                updateSettings({ enableLinkAnimation: !current });
-                                const store = useAppStore.getState();
-                                if (!current) {
-                                    store.setPacketFlowMode('troubleshoot');
-                                } else {
-                                    store.setPacketFlowMode('off');
-                                }
-                            }}
-                            className={`w-12 h-6 rounded-full transition-colors relative ${settings.enableLinkAnimation ? 'bg-orange-500' : 'bg-slate-200 dark:bg-slate-600'
-                                }`}
-                        >
-                            <div className={`absolute top-1 w-4 h-4 bg-white rounded-full transition-transform ${settings.enableLinkAnimation ? 'left-7' : 'left-1'
-                                }`} />
-                        </button>
-                    </div>
-
-                    <div className="flex items-center justify-between">
-                        <label className="text-slate-700 dark:text-slate-300 font-medium">Show Warnings</label>
-                        <button
-                            onClick={() => updateSettings({ showWarnings: !settings.showWarnings })}
-                            className={`w-12 h-6 rounded-full transition-colors relative ${settings.showWarnings ? 'bg-orange-500' : 'bg-slate-200 dark:bg-slate-600'
-                                }`}
-                        >
-                            <div className={`absolute top-1 w-4 h-4 bg-white rounded-full transition-transform ${settings.showWarnings ? 'left-7' : 'left-1'
-                                }`} />
-                        </button>
-                    </div>
-
-                    <div className="flex items-center justify-between">
-                        <label className="text-slate-700 dark:text-slate-300 font-medium">Compact Warnings</label>
-                        <button
-                            onClick={() => updateSettings({ compactWarnings: !settings.compactWarnings })}
-                            className={`w-12 h-6 rounded-full transition-colors relative ${settings.compactWarnings ? 'bg-orange-500' : 'bg-slate-200 dark:bg-slate-600'
-                                }`}
-                        >
-                            <div className={`absolute top-1 w-4 h-4 bg-white rounded-full transition-transform ${settings.compactWarnings ? 'left-7' : 'left-1'
-                                }`} />
-                        </button>
-                    </div>
-
-                    <div className="flex items-center justify-between">
-                        <label className="text-slate-700 dark:text-slate-300 font-medium flex flex-col">
-                            <span>Show Wi-Fi Coverage</span>
-                            <span className="text-[10px] text-slate-400 font-normal">Visual range for APs</span>
-                        </label>
-                        <button
-                            onClick={() => updateSettings({ showWifiCoverage: !settings.showWifiCoverage })}
-                            className={`w-12 h-6 rounded-full transition-colors relative ${settings.showWifiCoverage ? 'bg-orange-500' : 'bg-slate-200 dark:bg-slate-600'
-                                }`}
-                        >
-                            <div className={`absolute top-1 w-4 h-4 bg-white rounded-full transition-transform ${settings.showWifiCoverage ? 'left-7' : 'left-1'
-                                }`} />
-                        </button>
-                    </div>
-                </div>
-
-                <div className="space-y-4">
-                    <h3 className="text-sm font-semibold text-slate-400 uppercase tracking-wider">Project</h3>
+                {/* ── Project ── */}
+                <CollapsibleSection title="Project">
                     <div className="space-y-2">
                         <label className="text-slate-700 dark:text-slate-300 font-medium text-sm flex justify-between">
                             <span>Scale Calibration</span>
@@ -161,12 +169,14 @@ export const SettingsPanel = ({ onClose }: { onClose: () => void }) => {
                             Adjusts the physical scale of the grid for accurate coverage visualization.
                         </p>
                     </div>
-                </div>
+                </CollapsibleSection>
 
-                <div className="space-y-4">
-                    <h3 className="text-sm font-semibold text-slate-400 uppercase tracking-wider">Camera</h3>
+                <hr className="border-slate-100 dark:border-slate-700" />
+
+                {/* ── Camera ── */}
+                <CollapsibleSection title="Camera">
                     <div className="flex items-center justify-between">
-                        <label className="text-slate-700 dark:text-slate-300 font-medium">Reset View</label>
+                        <label className="text-slate-700 dark:text-slate-300 font-medium text-sm">Reset View</label>
                         <button
                             onClick={() => useAppStore.getState().triggerCameraReset()}
                             className="px-4 py-1.5 bg-slate-200 dark:bg-slate-700 hover:bg-slate-300 dark:hover:bg-slate-600 rounded text-sm text-slate-700 dark:text-slate-300 font-medium transition-colors"
@@ -174,12 +184,14 @@ export const SettingsPanel = ({ onClose }: { onClose: () => void }) => {
                             Center
                         </button>
                     </div>
-                </div>
+                </CollapsibleSection>
 
-                <div className="space-y-4">
-                    <h3 className="text-sm font-semibold text-slate-400 uppercase tracking-wider">Help & About</h3>
+                <hr className="border-slate-100 dark:border-slate-700" />
+
+                {/* ── Help & About ── */}
+                <CollapsibleSection title="Help & About">
                     <div className="flex items-center justify-between">
-                        <label className="text-slate-700 dark:text-slate-300 font-medium flex items-center gap-2">
+                        <label className="text-slate-700 dark:text-slate-300 font-medium text-sm flex items-center gap-2">
                             Replay Intro
                         </label>
                         <button
@@ -193,10 +205,11 @@ export const SettingsPanel = ({ onClose }: { onClose: () => void }) => {
                             Replay
                         </button>
                     </div>
-                </div>
+                </CollapsibleSection>
             </div>
 
-            <div className="p-4 border-t border-slate-100 dark:border-slate-700 text-center">
+            {/* Sticky Footer */}
+            <div className="p-4 border-t border-slate-100 dark:border-slate-700 text-center flex-shrink-0">
                 <p className="text-xs text-slate-400">Created by David Morales</p>
                 <p className="text-[10px] text-slate-300 dark:text-slate-600 mt-1">NetViz v{__APP_VERSION__}</p>
             </div>
