@@ -10,6 +10,11 @@ import { isWifiCapable } from './wifi';
 // Check if a path exists from StartDevice to ISP Modem
 // Supports Wired (preferred) and Wireless (fallback)
 export const checkUpstreamConnection = (device: Device, allDevices: Device[]): ConnectionState => {
+    // ISP Modem is the internet source — always considered online if powered
+    if (device.type === 'isp-modem') {
+        return device.status === 'online' ? 'online' : 'disconnected';
+    }
+
     // 1. Check Wired Connection (Priority)
     // Does this device have any physical ports connected?
     const hasWiredConnection = device.ports.some(p =>
@@ -22,10 +27,7 @@ export const checkUpstreamConnection = (device: Device, allDevices: Device[]): C
     if (hasWiredConnection) {
         // Wired Path Logic
 
-        // Base Case: ISP Modem
-        if (device.type === 'isp-modem') {
-            return device.status === 'online' ? 'online' : 'disconnected';
-        }
+        // Base Case: ISP Modem (handled at top of function)
 
         if (hasPathToISP(device, allDevices, new Set())) {
             return 'online';
