@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { useAppStore } from '../../store';
-import { X, ArrowRight, Check, Network, Save, MonitorPlay } from 'lucide-react';
+import { X, ArrowRight, Check, Network, Save, ShieldCheck, Box, LayoutGrid, AlertTriangle, Route, Wifi } from 'lucide-react';
 
 export const IntroModal = () => {
     const [slideIndex, setSlideIndex] = useState(0);
@@ -20,51 +20,103 @@ export const IntroModal = () => {
     };
 
     const slides = [
-        // Slide 1: Welcome
+        // Slide 1: Welcome — dual-view paradigm
         {
             icon: Network,
             title: "Welcome to NetViz",
-            subtitle: "Visualize your network reality.",
+            subtitle: "Your network, two ways.",
             content: (
-                <div className="space-y-4 text-center">
-                    <p className="text-slate-600 dark:text-slate-300">
-                        A professional tool for designing, simulating, and troubleshooting retail network topologies.
+                <div className="space-y-4 text-left">
+                    <p className="text-slate-600 dark:text-slate-300 text-center text-sm">
+                        Map and troubleshoot retail network topologies.
                     </p>
-                    <div className="p-4 bg-blue-50 dark:bg-blue-900/10 rounded-lg text-sm text-blue-700 dark:text-blue-300">
-                        Plan deployments, map existing sites, and validate connectivity in real-time.
+                    <div className="flex items-start gap-3">
+                        <div className="p-2 bg-orange-100 dark:bg-orange-900/20 rounded text-orange-600 shrink-0">
+                            <Box size={18} />
+                        </div>
+                        <div>
+                            <h4 className="font-semibold text-slate-900 dark:text-white text-sm">3D Sandbox</h4>
+                            <p className="text-xs text-slate-500 dark:text-slate-400">Build, wire, and arrange devices in an interactive 3D environment.</p>
+                        </div>
+                    </div>
+                    <div className="flex items-start gap-3">
+                        <div className="p-2 bg-blue-100 dark:bg-blue-900/20 rounded text-blue-600 shrink-0">
+                            <LayoutGrid size={18} />
+                        </div>
+                        <div>
+                            <h4 className="font-semibold text-slate-900 dark:text-white text-sm">2D Diagram</h4>
+                            <p className="text-xs text-slate-500 dark:text-slate-400">Auto-generated topology you can drag, edit, and export as PNG.</p>
+                        </div>
                     </div>
                 </div>
             )
         },
-        // Slide 2: Concepts
+        // Slide 2: Smart Diagnostics — NEW
         {
-            icon: MonitorPlay,
-            title: "How it works",
-            subtitle: "Core Concepts",
+            icon: ShieldCheck,
+            title: "Built-in Intelligence",
+            subtitle: "Your network checks itself.",
             content: (
                 <div className="space-y-4 text-left">
                     <div className="flex items-start gap-3">
-                        <div className="p-2 bg-orange-100 dark:bg-orange-900/20 rounded text-orange-600">
-                            <MonitorPlay size={18} />
+                        <div className="p-2 bg-amber-100 dark:bg-amber-900/20 rounded text-amber-600 shrink-0">
+                            <AlertTriangle size={18} />
                         </div>
                         <div>
-                            <h4 className="font-semibold text-slate-900 dark:text-white text-sm">Sandbox Strategy</h4>
-                            <p className="text-xs text-slate-500 dark:text-slate-400">Build safe, disconnected experiments or mirror real-world setups.</p>
+                            <h4 className="font-semibold text-slate-900 dark:text-white text-sm">Warnings</h4>
+                            <p className="text-xs text-slate-500 dark:text-slate-400">Real-time alerts for misconfigurations and capacity issues.</p>
                         </div>
                     </div>
                     <div className="flex items-start gap-3">
-                        <div className="p-2 bg-emerald-100 dark:bg-emerald-900/20 rounded text-emerald-600">
-                            <Save size={18} />
+                        <div className="p-2 bg-emerald-100 dark:bg-emerald-900/20 rounded text-emerald-600 shrink-0">
+                            <Route size={18} />
                         </div>
                         <div>
-                            <h4 className="font-semibold text-slate-900 dark:text-white text-sm">Living Documents</h4>
-                            <p className="text-xs text-slate-500 dark:text-slate-400">Save work as portable JSON files. Share, reload, and iterate anytime.</p>
+                            <h4 className="font-semibold text-slate-900 dark:text-white text-sm">Trace to Internet</h4>
+                            <p className="text-xs text-slate-500 dark:text-slate-400">Visualize the data path from any device to the WAN.</p>
+                        </div>
+                    </div>
+                    <div className="flex items-start gap-3">
+                        <div className="p-2 bg-cyan-100 dark:bg-cyan-900/20 rounded text-cyan-600 shrink-0">
+                            <Wifi size={18} />
+                        </div>
+                        <div>
+                            <h4 className="font-semibold text-slate-900 dark:text-white text-sm">Wi-Fi Coverage</h4>
+                            <p className="text-xs text-slate-500 dark:text-slate-400">Signal visualization with wall-aware attenuation.</p>
                         </div>
                     </div>
                 </div>
             )
         },
-        // Slide 3: Identity
+        // Slide 3: Save & Share
+        {
+            icon: Save,
+            title: "Living Documents",
+            subtitle: "Save, share, iterate.",
+            content: (
+                <div className="space-y-4 text-left">
+                    <div className="flex items-start gap-3">
+                        <div className="p-2 bg-emerald-100 dark:bg-emerald-900/20 rounded text-emerald-600 shrink-0">
+                            <Save size={18} />
+                        </div>
+                        <div>
+                            <h4 className="font-semibold text-slate-900 dark:text-white text-sm">Portable JSON</h4>
+                            <p className="text-xs text-slate-500 dark:text-slate-400">Save your entire topology to a file. Reload anywhere, anytime.</p>
+                        </div>
+                    </div>
+                    <div className="flex items-start gap-3">
+                        <div className="p-2 bg-violet-100 dark:bg-violet-900/20 rounded text-violet-600 shrink-0">
+                            <Check size={18} />
+                        </div>
+                        <div>
+                            <h4 className="font-semibold text-slate-900 dark:text-white text-sm">Revision History</h4>
+                            <p className="text-xs text-slate-500 dark:text-slate-400">Every save records who changed what. Your name helps attribute changes.</p>
+                        </div>
+                    </div>
+                </div>
+            )
+        },
+        // Slide 4: Identity (unchanged)
         {
             icon: Save,
             title: "One last thing...",
