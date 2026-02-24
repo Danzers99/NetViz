@@ -1,3 +1,4 @@
+import { useState, useEffect } from 'react';
 import { X } from 'lucide-react';
 import { useAppStore } from '../store';
 
@@ -10,13 +11,48 @@ export const DeviceProperties = () => {
 
     const device = devices.find(d => d.id === propertiesPanelDeviceId);
 
+    // ── Editable device name ──
+    const [editName, setEditName] = useState(device?.name ?? '');
+
+    // Sync local state when selected device changes
+    useEffect(() => {
+        if (device) setEditName(device.name);
+    }, [device?.id, device?.name]);
+
+    const commitName = () => {
+        if (!device) return;
+        const trimmed = editName.trim();
+        if (trimmed && trimmed !== device.name) {
+            updateDevice(device.id, { name: trimmed });
+        } else {
+            // Revert to current name (blank or unchanged)
+            setEditName(device.name);
+        }
+    };
+
+    const handleNameKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
+        if (e.key === 'Enter') {
+            (e.target as HTMLInputElement).blur();
+        } else if (e.key === 'Escape') {
+            setEditName(device?.name ?? '');
+            (e.target as HTMLInputElement).blur();
+        }
+    };
+
     if (!device) return null;
 
     return (
-        <div className="fixed inset-y-0 right-0 w-80 bg-white dark:bg-slate-800 shadow-2xl z-40 transform transition-transform duration-300 ease-in-out border-l border-slate-200 dark:border-slate-700 flex flex-col">
+        <div className="fixed inset-y-0 right-0 w-80 bg-white dark:bg-slate-800 shadow-2xl z-[100] transform transition-transform duration-300 ease-in-out border-l border-slate-200 dark:border-slate-700 flex flex-col">
             <div className="flex items-center justify-between p-4 border-b border-slate-100 dark:border-slate-700 bg-slate-50 dark:bg-slate-800/50">
-                <div className="flex flex-col">
-                    <h2 className="font-bold text-lg text-slate-800 dark:text-slate-100">{device.name}</h2>
+                <div className="flex flex-col flex-1 mr-2">
+                    <input
+                        type="text"
+                        value={editName}
+                        onChange={(e) => setEditName(e.target.value)}
+                        onBlur={commitName}
+                        onKeyDown={handleNameKeyDown}
+                        className="font-bold text-lg text-slate-800 dark:text-slate-100 bg-transparent border border-transparent rounded px-1 -ml-1 focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500 transition-colors w-full"
+                    />
                     <span className="text-xs text-slate-500 dark:text-slate-400 font-mono">{device.type}</span>
                 </div>
                 <button

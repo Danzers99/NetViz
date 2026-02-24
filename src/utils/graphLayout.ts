@@ -29,6 +29,10 @@ export interface GraphEdge {
     targetId: string;
     sourcePort: string;
     targetPort: string;
+    /** Port ID of the source end (for matching cable IDs) */
+    sourcePortId: string;
+    /** Port ID of the target end (for matching cable IDs) */
+    targetPortId: string;
 }
 
 export interface NetworkGraph {
@@ -64,6 +68,8 @@ interface AdjEntry {
     targetId: string;
     srcPort: string;
     dstPort: string;
+    srcPortId: string;
+    dstPortId: string;
 }
 
 function buildAdjacency(devices: Device[]): Map<string, AdjEntry[]> {
@@ -95,6 +101,8 @@ function buildAdjacency(devices: Device[]): Map<string, AdjEntry[]> {
                 targetId: targetDevice.id,
                 srcPort: port.name,
                 dstPort: targetPortInfo.name,
+                srcPortId: port.id,
+                dstPortId: port.connectedTo,
             });
         }
     }
@@ -155,6 +163,8 @@ export function buildNetworkGraph(
                 targetId: n.targetId,
                 sourcePort: n.srcPort,
                 targetPort: n.dstPort,
+                sourcePortId: n.srcPortId,
+                targetPortId: n.dstPortId,
             });
         }
     }

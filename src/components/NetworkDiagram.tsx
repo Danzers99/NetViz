@@ -11,6 +11,7 @@ import { useAppStore } from '../store';
 import { buildNetworkGraph, findAutoConnectPorts, type GraphNode } from '../utils/graphLayout';
 import { getDeviceDefinition } from '../data/deviceDefinitions';
 import { getNetworkStatus } from '../utils/deviceStatus';
+import { DeviceContextMenu } from './DeviceContextMenu';
 
 // ─── Constants ──────────────────────────────────────────────
 
@@ -91,6 +92,9 @@ export const NetworkDiagram = ({ onClose }: NetworkDiagramProps) => {
     const rooms = useAppStore(s => s.rooms);
     const darkMode = useAppStore(s => s.settings.darkMode);
     const projectName = useAppStore(s => s.projectInfo.name);
+    const packetFlowMode = useAppStore(s => s.packetFlowMode);
+    const packetFlowLinks = useAppStore(s => s.packetFlowLinks);
+    const clearPacketFlow = useAppStore(s => s.clearPacketFlow);
 
     const graph = useMemo(() => buildNetworkGraph(devices, rooms), [devices, rooms]);
 
@@ -103,6 +107,9 @@ export const NetworkDiagram = ({ onClose }: NetworkDiagramProps) => {
 
     // Tooltip
     const [tooltip, setTooltip] = useState<TooltipData | null>(null);
+
+    // ── Context menu state ──
+    const [contextMenu, setContextMenu] = useState<{ deviceId: string; x: number; y: number } | null>(null);
 
     // ── Interaction state ──
     const [selectedNodeId, setSelectedNodeId] = useState<string | null>(null);
@@ -139,10 +146,11 @@ export const NetworkDiagram = ({ onClose }: NetworkDiagramProps) => {
         if (e.button !== 0) return;
         setIsPanning(true);
         panStart.current = { x: e.clientX - transform.x, y: e.clientY - transform.y };
-        // Clicking background clears selection (but not connect source — that needs Esc)
+        // Clicking background clears selection and context menu
         if (!e.shiftKey) {
             setSelectedNodeId(null);
         }
+        setContextMenu(null);
     }, [transform.x, transform.y]);
 
     const onMouseMove = useCallback((e: React.MouseEvent) => {
@@ -380,7 +388,9 @@ export const NetworkDiagram = ({ onClose }: NetworkDiagramProps) => {
     useEffect(() => {
         const handler = (e: KeyboardEvent) => {
             if (e.key === 'Escape') {
-                if (connectSourceId) {
+                if (contextMenu) {
+                    setContextMenu(null);
+                } else if (connectSourceId) {
                     setConnectSourceId(null);
                     setSelectedNodeId(null);
                 } else {
@@ -390,7 +400,7 @@ export const NetworkDiagram = ({ onClose }: NetworkDiagramProps) => {
         };
         window.addEventListener('keydown', handler);
         return () => window.removeEventListener('keydown', handler);
-    }, [onClose, connectSourceId]);
+    }, [onClose, connectSourceId, contextMenu]);
 
     // CSS variables
     const cssVars = darkMode
@@ -403,6 +413,41 @@ export const NetworkDiagram = ({ onClose }: NetworkDiagramProps) => {
     const labelColor = darkMode ? '#e2e8f0' : '#1e293b';
 
     const connectSourceNode = connectSourceId ? graph.nodes.find(n => n.id === connectSourceId) : null;
+
+    // ── Trace highlight sets ──
+    const { tracedEdgeKeys, tracedNodeIds } = useMemo(() => {
+        if (packetFlowMode !== 'trace' || packetFlowLinks.length === 0) {
+            return { tracedEdgeKeys: new Set<string>(), tracedNodeIds: new Set<string>() };
+        }
+        // Build a set of cable IDs (both directions) for fast lookup
+        const cableSet = new Set<string>();
+        for (const c of packetFlowLinks) {
+            cableSet.add(c);
+            const parts = c.split('-');
+            if (parts.length >= 2) {
+                // Reverse: handle composite IDs like "type-123-port-type-456-port"
+                // Cable format is `${portA.id}-${portB.id}` but port IDs themselves contain dashes
+                // So we need to match against edge sourcePortId/targetPortId directly
+            }
+        }
+
+        const edgeKeys = new Set<string>();
+        const nodeIds = new Set<string>();
+
+        for (const edge of graph.edges) {
+            const fwd = `${edge.sourcePortId}-${edge.targetPortId}`;
+            const rev = `${edge.targetPortId}-${edge.sourcePortId}`;
+            if (cableSet.has(fwd) || cableSet.has(rev)) {
+                edgeKeys.add(`${edge.sourceId}|${edge.targetId}`);
+                nodeIds.add(edge.sourceId);
+                nodeIds.add(edge.targetId);
+            }
+        }
+
+        return { tracedEdgeKeys: edgeKeys, tracedNodeIds: nodeIds };
+    }, [packetFlowMode, packetFlowLinks, graph.edges]);
+
+    const isTraceActive = packetFlowMode === 'trace' && tracedEdgeKeys.size > 0;
 
     return (
         <div
@@ -503,20 +548,32 @@ export const NetworkDiagram = ({ onClose }: NetworkDiagramProps) => {
                                     const dst = getNodePos(dstNode);
                                     const midX = (src.x + dst.x) / 2;
                                     const midY = (src.y + dst.y) / 2;
+                                    const edgeKey = `${edge.sourceId}|${edge.targetId}`;
+                                    const isTraced = tracedEdgeKeys.has(edgeKey);
                                     return (
                                         <g key={`edge-${i}`}>
                                             <line
                                                 x1={src.x} y1={src.y}
                                                 x2={dst.x} y2={dst.y}
-                                                stroke={edgeColor}
-                                                strokeWidth={2}
-                                            />
+                                                stroke={isTraced ? '#22c55e' : edgeColor}
+                                                strokeWidth={isTraced ? 4 : 2}
+                                                strokeDasharray={isTraced ? '8 4' : undefined}
+                                            >
+                                                {isTraced && (
+                                                    <animate
+                                                        attributeName="stroke-dashoffset"
+                                                        values="0;24"
+                                                        dur="1s"
+                                                        repeatCount="indefinite"
+                                                    />
+                                                )}
+                                            </line>
                                             <text
                                                 x={midX}
                                                 y={midY - 6}
                                                 textAnchor="middle"
                                                 fontSize={9}
-                                                fill={edgeLabelColor}
+                                                fill={isTraced ? '#22c55e' : edgeLabelColor}
                                                 style={{ pointerEvents: 'none' }}
                                             >
                                                 {edge.sourcePort} → {edge.targetPort}
@@ -533,15 +590,33 @@ export const NetworkDiagram = ({ onClose }: NetworkDiagramProps) => {
                                     const pos = getNodePos(node);
                                     const isSelected = selectedNodeId === node.id;
                                     const isConnectSource = connectSourceId === node.id;
+                                    const isNodeTraced = tracedNodeIds.has(node.id);
                                     return (
                                         <g
                                             key={node.id}
                                             onMouseDown={(e) => onNodeMouseDown(e, node.id)}
+                                            onContextMenu={(e) => {
+                                                e.preventDefault();
+                                                e.stopPropagation();
+                                                setTooltip(null);
+                                                setContextMenu({ deviceId: node.id, x: e.clientX, y: e.clientY });
+                                            }}
                                             onMouseEnter={(e) => setTooltip({ node, x: e.clientX, y: e.clientY })}
                                             onMouseMove={(e) => setTooltip(prev => prev ? { ...prev, x: e.clientX, y: e.clientY } : null)}
                                             onMouseLeave={() => setTooltip(null)}
                                             style={{ cursor: draggingNodeId === node.id ? 'grabbing' : 'pointer' }}
                                         >
+                                            {/* Trace glow ring */}
+                                            {isNodeTraced && (
+                                                <circle
+                                                    cx={pos.x} cy={pos.y}
+                                                    r={NODE_RADIUS + 6}
+                                                    fill="none"
+                                                    stroke="#22c55e"
+                                                    strokeWidth={2.5}
+                                                    opacity={0.7}
+                                                />
+                                            )}
                                             {/* Selection ring */}
                                             {isSelected && !isConnectSource && (
                                                 <circle
@@ -647,18 +722,51 @@ export const NetworkDiagram = ({ onClose }: NetworkDiagramProps) => {
 
                 {/* Hint text */}
                 {graph.nodes.length > 0 && (
-                    <div className="absolute bottom-4 left-4 text-xs px-2 py-1 rounded"
+                    <div className="absolute bottom-4 left-4 text-xs px-2 py-1 rounded flex items-center gap-3"
                         style={{
                             backgroundColor: darkMode ? '#1e293b80' : '#f1f5f980',
                             color: edgeLabelColor,
                         }}>
-                        Click to select · Drag to move · Shift+Click to connect/disconnect · Scroll to zoom
+                        <span>Click to select · Drag to move · Shift+Click to connect · Right-click for menu · Scroll to zoom</span>
+                        {isTraceActive && (
+                            <button
+                                onClick={clearPacketFlow}
+                                className="px-2 py-0.5 rounded text-xs font-medium bg-green-600 hover:bg-green-500 text-white transition-colors"
+                            >
+                                Clear Trace
+                            </button>
+                        )}
                     </div>
                 )}
             </div>
 
             {/* Tooltip */}
-            {tooltip && <Tooltip data={tooltip} />}
+            {tooltip && !contextMenu && <Tooltip data={tooltip} />}
+
+            {/* Context menu overlay */}
+            {contextMenu && (() => {
+                const menuDevice = devices.find(d => d.id === contextMenu.deviceId);
+                if (!menuDevice) return null;
+                return (
+                    <div
+                        className="fixed inset-0 z-[95]"
+                        onClick={() => setContextMenu(null)}
+                        onContextMenu={(e) => { e.preventDefault(); setContextMenu(null); }}
+                    >
+                        <div
+                            className="absolute"
+                            style={{ left: contextMenu.x, top: contextMenu.y }}
+                            onClick={(e) => e.stopPropagation()}
+                        >
+                            <DeviceContextMenu
+                                device={menuDevice}
+                                onClose={() => setContextMenu(null)}
+                                context="2d"
+                            />
+                        </div>
+                    </div>
+                );
+            })()}
         </div>
     );
 };
