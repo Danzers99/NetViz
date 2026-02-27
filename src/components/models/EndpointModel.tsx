@@ -7,55 +7,36 @@ export const SwitchModel = ({ type, status, connectionState }: { type: DeviceTyp
 
     // Status Light Color (used for activity LEDs)
     const ledColor = getScreenColor(status, connectionState);
-    const lanColor = '#eab308'; // Yellow for LAN ports per spec
     const powerColor = '#4b5563'; // Grey for power port
-    
+
     // Switch chassis dimensions
     const w = 1.4;
     const h = 0.25;
     const d = 0.8;
 
     return (
-        <group position={[0, h/2 + 0.05, 0]}>
+        <group position={[0, h / 2 + 0.05, 0]}>
             {/* Main Chassis */}
             <mesh>
                 <boxGeometry args={[w, h, d]} />
                 <meshStandardMaterial color={color} metalness={0.4} roughness={0.6} />
             </mesh>
-            
-            {/* 8 Front Ports (LAN) */}
-            {Array.from({ length: 8 }).map((_, i) => {
-                // Determine port X position across the front face
-                // Range from -w/2 to w/2 with some margin
-                const startX = -w / 2 + 0.15;
-                const endX = w / 2 - 0.15;
-                const step = (endX - startX) / 7;
-                const portX = startX + i * step;
 
-                return (
-                    <group key={`switch-port-${i}`} position={[portX, -0.02, d / 2 + 0.001]}>
-                        {/* Port Recess/Cutout (darker, slightly smaller than the port) */}
-                        <mesh position={[0, -0.01, -0.01]}>
-                            <boxGeometry args={[0.1, 0.1, 0.02]} />
-                            <meshStandardMaterial color="#111827" /> {/* Dark interior */}
-                        </mesh>
-                        {/* Port Contact Area (Yellow LAN) */}
-                        <mesh position={[0, -0.02, 0]}>
-                            <planeGeometry args={[0.08, 0.08]} />
-                            <meshStandardMaterial color={lanColor} />
-                        </mesh>
-                        {/* Link LED above port */}
-                        <mesh position={[-0.03, 0.07, 0]}>
-                            <planeGeometry args={[0.02, 0.02]} />
-                            <meshStandardMaterial 
-                                color={ledColor} 
-                                emissive={ledColor}
-                                emissiveIntensity={status === 'offline' ? 0 : 0.6}
-                            />
-                        </mesh>
-                    </group>
-                );
-            })}
+            {/* Clean Front Panel Recess for generated ports */}
+            <mesh position={[0, -0.01, d / 2 + 0.005]}>
+                <boxGeometry args={[w - 0.1, h - 0.1, 0.01]} />
+                <meshStandardMaterial color="#111827" /> {/* Dark interior for ports to sit on */}
+            </mesh>
+
+            {/* General Status/Power LED on the far left */}
+            <mesh position={[-w / 2 + 0.08, 0.0, d / 2 + 0.01]}>
+                <circleGeometry args={[0.02, 16]} />
+                <meshStandardMaterial
+                    color={ledColor}
+                    emissive={ledColor}
+                    emissiveIntensity={status === 'offline' ? 0 : 0.6}
+                />
+            </mesh>
 
             {/* Rear Power Port */}
             <mesh position={[w / 2 - 0.2, 0, -d / 2 - 0.005]} rotation={[0, Math.PI, 0]}>
