@@ -41,6 +41,23 @@ export const getPortPosition = (device: Device, port: Port, index: number): [num
                 return [0, 0.7 - (lanIndex * 0.15), -0.46];
             }
 
+        case 'cradlepoint-router':
+            // Low-profile chassis: [1.6, 0.25, 1.0]. Center [0, 0.125, 0].
+            // Rear face Z = -0.5. Ports at Y = 0.12 (mid-height).
+            // Layout left-to-right (rear view): Power, LAN1-4 (clustered), WAN (separated)
+            if (port.role === 'power_input') {
+                return [-0.55, 0.12, -0.52];
+            } else if (port.role === 'wan') {
+                return [0.50, 0.12, -0.52]; // Separated from LAN cluster
+            } else {
+                // LAN ports — grouped together in center-left area
+                const lanPorts = device.ports.filter(p => p.role === 'lan');
+                const lanIndex = lanPorts.findIndex(p => p.id === port.id);
+                const lanSpacing = 0.15;
+                const lanStartX = -0.25;
+                return [lanStartX + lanIndex * lanSpacing, 0.12, -0.52];
+            }
+
         case 'managed-switch':
         case 'unmanaged-switch':
             // SwitchModel: Box [1.8, 0.44, 1.0]. Center [0, 0.22, 0].
@@ -103,11 +120,19 @@ export const getPortPosition = (device: Device, port: Port, index: number): [num
         case 'v3-pos':
         case 'v4-pos':
         case 'elo-kds':
+            // EloKDSModel base: pos [0, 0.05, 0], size [0.5, 0.1, 0.4].
+            // Back face Z = -0.2. Port mesh depth=0.05, center at Z=-0.18
+            // keeps port slightly proud of surface (avoids Z-fighting).
+            // Y=0.05 centers on base. X=±0.08 fits proportionally.
+            if (port.role === 'power_input') return [0.08, 0.05, -0.18];
+            return [-0.08, 0.05, -0.18];
+
         case 'kds':
-            // POS Model: Base [0.6, 0.2, 0.6]. Center [0, 0.1, 0].
-            // Back face Z = -0.3.
-            if (port.role === 'power_input') return [0.1, 0.1, -0.32]; // Offset power slightly
-            return [-0.1, 0.1, -0.32];
+            // POSModel base: pos [0, 0.1, 0], size [0.6, 0.2, 0.6].
+            // Back face Z = -0.3. Port mesh depth=0.05, center at Z=-0.28
+            // keeps port slightly proud of surface. Y=0.1 centers on base.
+            if (port.role === 'power_input') return [0.1, 0.1, -0.28];
+            return [-0.1, 0.1, -0.28];
 
         case 'printer':
         case 'epson-thermal':

@@ -28,6 +28,17 @@ export const EloKDSModel = ({ status, connectionState }: { status?: string, conn
                 <boxGeometry args={[0.5, 0.1, 0.4]} />
                 <meshStandardMaterial color="#1e293b" />
             </mesh>
+            {/* Port recess cutouts — decorative only, excluded from raycasting */}
+            {/* LAN recess (rectangular) */}
+            <mesh position={[-0.08, 0.05, -0.201]} raycast={() => null}>
+                <planeGeometry args={[0.14, 0.13]} />
+                <meshStandardMaterial color="#0a0a0a" />
+            </mesh>
+            {/* Power recess (circular DC barrel) */}
+            <mesh position={[0.08, 0.05, -0.201]} raycast={() => null}>
+                <circleGeometry args={[0.06, 16]} />
+                <meshStandardMaterial color="#0a0a0a" />
+            </mesh>
             {/* Stand Neck */}
             <mesh position={[0, 0.3, -0.1]}>
                 <cylinderGeometry args={[0.05, 0.05, 0.5]} />
