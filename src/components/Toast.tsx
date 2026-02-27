@@ -32,7 +32,7 @@ export const Toast = () => {
     const Icon = icons[notification.type];
 
     return (
-        <div className="fixed top-20 left-1/2 -translate-x-1/2 z-[60] animate-in slide-in-from-top-4 fade-in duration-300">
+        <div className="absolute top-24 left-1/2 -translate-x-1/2 z-[60] animate-in slide-in-from-top-4 fade-in duration-300">
             <div className={`${bgColors[notification.type]} text-white px-6 py-3 rounded-full shadow-xl flex items-center gap-3 min-w-[300px] justify-between`}>
                 <div className="flex items-center gap-2">
                     <Icon size={20} />

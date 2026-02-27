@@ -337,6 +337,23 @@ export const useAppStore = create<AppState>((set, get) => ({
         devices = updateWirelessAssociation(devices);
         devices = updateConnectionStates(devices);
 
+        // Center devices around origin
+        if (devices.length > 0) {
+            let minX = Infinity, maxX = -Infinity;
+            let minZ = Infinity, maxZ = -Infinity;
+            for (const d of devices) {
+                minX = Math.min(minX, d.position[0]);
+                maxX = Math.max(maxX, d.position[0]);
+                minZ = Math.min(minZ, d.position[2]);
+                maxZ = Math.max(maxZ, d.position[2]);
+            }
+            const cx = (minX + maxX) / 2;
+            const cz = (minZ + maxZ) / 2;
+            for (const d of devices) {
+                d.position = [d.position[0] - cx, d.position[1], d.position[2] - cz];
+            }
+        }
+
         const errors = validateNetwork(devices);
         set({ devices, step: 'sandbox', validationErrors: errors, rooms: [], layoutMode: false }); // Reset rooms/mode on gen
     },

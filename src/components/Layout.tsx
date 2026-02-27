@@ -164,7 +164,6 @@ export const Layout = ({ children }: { children: ReactNode }) => {
 
     return (
         <div className="flex h-screen bg-slate-50 dark:bg-slate-900 text-slate-900 dark:text-slate-100 font-sans relative overflow-hidden">
-            <Toast />
             <SaveDialog
                 isOpen={showSaveDialog}
                 autoSummary={pendingAutoSummary}
@@ -298,6 +297,7 @@ export const Layout = ({ children }: { children: ReactNode }) => {
                 <div className="absolute top-4 left-1/2 -translate-x-1/2 flex flex-col items-center gap-1 pointer-events-none z-10">
                     {step === 'sandbox' && <SelectedPortIndicator />}
                 </div>
+                <Toast />
                 {children}
             </main>
 

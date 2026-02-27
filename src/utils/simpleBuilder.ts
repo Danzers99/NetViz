@@ -419,6 +419,38 @@ export function buildSimpleTopology(config: SimpleBuildConfig): BuildResult | Bu
     // === LAYOUT DEVICES ===
     const layoutedDevices = layoutDevicesInRooms(devices, rooms);
 
+    // === CENTER AROUND ORIGIN ===
+    // Compute bounding box from rooms (which define the true footprint)
+    if (rooms.length > 0) {
+        let minX = Infinity, maxX = -Infinity;
+        let minY = Infinity, maxY = -Infinity;
+        for (const room of rooms) {
+            const halfW = room.width / 2;
+            const halfH = room.height / 2;
+            minX = Math.min(minX, room.x - halfW);
+            maxX = Math.max(maxX, room.x + halfW);
+            minY = Math.min(minY, room.y - halfH);
+            maxY = Math.max(maxY, room.y + halfH);
+        }
+        const cx = (minX + maxX) / 2;
+        const cy = (minY + maxY) / 2;
+
+        // Translate rooms so centroid is at origin
+        for (const room of rooms) {
+            room.x -= cx;
+            room.y -= cy;
+        }
+
+        // Translate device positions (x maps to position[0], y maps to position[2])
+        for (const device of layoutedDevices) {
+            device.position = [
+                device.position[0] - cx,
+                device.position[1],
+                device.position[2] - cy,
+            ];
+        }
+    }
+
     return {
         devices: layoutedDevices,
         rooms,
