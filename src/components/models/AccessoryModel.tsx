@@ -41,7 +41,7 @@ export const InjectorModel = ({ status }: { status: string }) => {
             {/* Port Labels/Areas Front */}
             <mesh position={[-0.1, 0, 0.41]}>
                 <planeGeometry args={[0.15, 0.15]} />
-                <meshStandardMaterial color="#3b82f6" /> {/* LAN Blue */}
+                <meshStandardMaterial color="#eab308" /> {/* LAN Yellow */}
             </mesh>
             <mesh position={[0.1, 0, 0.41]}>
                 <planeGeometry args={[0.15, 0.15]} />
@@ -50,7 +50,7 @@ export const InjectorModel = ({ status }: { status: string }) => {
             {/* Power Input Back */}
             <mesh position={[0, 0, -0.41]}>
                 <planeGeometry args={[0.2, 0.2]} />
-                <meshStandardMaterial color="#fbbf24" /> {/* Power Yellow-ish */}
+                <meshStandardMaterial color="#4b5563" metalness={0.3} roughness={0.6} /> {/* Power Grey */}
             </mesh>
         </group>
     );

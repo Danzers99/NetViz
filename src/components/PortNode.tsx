@@ -57,15 +57,18 @@ export const PortNode = ({ port, position, orientation = [0, 0, 0] }: { port: Po
         if (localHovered) return '#60a5fa'; // Hover Blue (Individual)
 
         switch (port.role) {
-            case 'wan': return '#ef4444'; // Red/Yellow plastic for WAN
+            case 'wan': return '#3b82f6'; // Blue for WAN/Internet
             case 'uplink': return '#3b82f6'; // Blue for Uplink
             case 'poe_source': return '#f59e0b'; // Amber for PoE Out
             case 'poe_client': return '#f59e0b'; // Amber for PoE In
-            case 'power_input': return '#facc15'; // Yellow for Power Visibility
-            case 'power_source': return '#facc15'; // Yellow for Power Visibility
-            default: return '#334155'; // Dark Slate for LAN
+            case 'power_input': return '#4b5563'; // Medium-dark grey — visible on black chassis
+            case 'power_source': return '#4b5563'; // Medium-dark grey — visible on black chassis
+            default: return '#eab308'; // Yellow for LAN
         }
     };
+
+    // Power ports get subtle specular highlight for edge contrast on dark devices
+    const isPowerPort = port.role === 'power_input' || port.role === 'power_source';
 
     const handlePointerOver = (e: ThreeEvent<PointerEvent>) => {
         e.stopPropagation();
@@ -106,6 +109,8 @@ export const PortNode = ({ port, position, orientation = [0, 0, 0] }: { port: Po
                     color={getPortColor()}
                     emissive={isSelected ? '#ffffff' : '#000000'}
                     emissiveIntensity={0.5}
+                    metalness={isPowerPort ? 0.3 : 0}
+                    roughness={isPowerPort ? 0.6 : 1}
                 />
             </mesh>
 
