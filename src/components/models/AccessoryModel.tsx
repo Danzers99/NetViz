@@ -57,34 +57,77 @@ export const InjectorModel = ({ status }: { status: string }) => {
 };
 
 export const PowerOutletModel = ({ status }: { status: string }) => {
-    // Look like a power strip
+    const bodyColor = '#f0ece8'; // Slight off-white plastic
+    const cavityColor = '#d4cfc9'; // Slightly darker socket interior
+    const slotColor = '#1a1a1a'; // Dark prong slots
+
     return (
         <group position={[0, 0.1, 0]}>
-            {/* Strip Body */}
+            {/* Main strip body — long narrow rectangle */}
             <mesh>
                 <boxGeometry args={[1.6, 0.2, 0.4]} />
-                <meshStandardMaterial color="#f8fafc" /> {/* White plastic */}
+                <meshStandardMaterial color={bodyColor} roughness={0.75} metalness={0.02} />
             </mesh>
-            {/* Individual Outlets */}
+
+            {/* Perimeter bevel trim — top edge accent */}
+            <mesh position={[0, 0.105, 0]}>
+                <boxGeometry args={[1.56, 0.01, 0.36]} />
+                <meshStandardMaterial color="#e8e4df" roughness={0.7} metalness={0.03} />
+            </mesh>
+
+            {/* 4 US-style outlets */}
             {[-0.7, -0.3, 0.1, 0.5].map((x, i) => (
-                <mesh key={i} position={[x, 0.11, 0]} rotation={[-Math.PI / 2, 0, 0]}>
-                    <planeGeometry args={[0.15, 0.2]} />
-                    <meshStandardMaterial color="#334155" />
-                </mesh>
+                <group key={`outlet-${i}`} position={[x, 0.105, 0]}>
+                    {/* Recessed cavity */}
+                    <mesh rotation={[-Math.PI / 2, 0, 0]}>
+                        <boxGeometry args={[0.14, 0.2, 0.02]} />
+                        <meshStandardMaterial color={cavityColor} roughness={0.8} metalness={0.0} />
+                    </mesh>
+
+                    {/* Left vertical prong slot */}
+                    <mesh position={[-0.025, 0.005, 0]} rotation={[-Math.PI / 2, 0, 0]}>
+                        <boxGeometry args={[0.015, 0.06, 0.01]} />
+                        <meshStandardMaterial color={slotColor} roughness={0.9} />
+                    </mesh>
+                    {/* Right vertical prong slot */}
+                    <mesh position={[0.025, 0.005, 0]} rotation={[-Math.PI / 2, 0, 0]}>
+                        <boxGeometry args={[0.015, 0.06, 0.01]} />
+                        <meshStandardMaterial color={slotColor} roughness={0.9} />
+                    </mesh>
+                    {/* Ground slot (rounded — use small cylinder) */}
+                    <mesh position={[0, 0.005, 0.045]} rotation={[-Math.PI / 2, 0, 0]}>
+                        <cylinderGeometry args={[0.012, 0.012, 0.01, 8]} />
+                        <meshStandardMaterial color={slotColor} roughness={0.9} />
+                    </mesh>
+                </group>
             ))}
-            {/* Switch on the end */}
+
+            {/* Red rocker switch — near the right end */}
             <mesh position={[0.72, 0.12, 0]}>
-                <boxGeometry args={[0.1, 0.1, 0.2]} />
+                <boxGeometry args={[0.1, 0.06, 0.18]} />
                 <meshStandardMaterial
-                    color={status === 'offline' ? '#ef4444' : '#ef4444'}
-                    emissive={status === 'offline' ? '#000000' : '#ef4444'}
-                    emissiveIntensity={status === 'offline' ? 0 : 0.5}
+                    color="#dc2626"
+                    roughness={0.25}
+                    metalness={0.05}
+                    emissive={status === 'offline' ? '#000000' : '#dc2626'}
+                    emissiveIntensity={status === 'offline' ? 0 : 0.3}
                 />
             </mesh>
-            {/* Cable exit */}
-            <mesh position={[-0.8, 0, 0]} rotation={[0, 0, 1.57]}>
-                <cylinderGeometry args={[0.05, 0.05, 0.2]} />
-                <meshStandardMaterial color="#000000" />
+            {/* Switch bezel / recess */}
+            <mesh position={[0.72, 0.1, 0]}>
+                <boxGeometry args={[0.13, 0.02, 0.21]} />
+                <meshStandardMaterial color="#e0dbd5" roughness={0.8} metalness={0.0} />
+            </mesh>
+
+            {/* Power cable — cylindrical exit on left end */}
+            <mesh position={[-0.9, 0, 0]} rotation={[0, 0, Math.PI / 2]}>
+                <cylinderGeometry args={[0.04, 0.04, 0.25, 8]} />
+                <meshStandardMaterial color="#111111" roughness={0.85} metalness={0.05} />
+            </mesh>
+            {/* Strain relief bump */}
+            <mesh position={[-0.82, 0, 0]} rotation={[0, 0, Math.PI / 2]}>
+                <cylinderGeometry args={[0.055, 0.05, 0.06, 8]} />
+                <meshStandardMaterial color="#1a1a1a" roughness={0.8} metalness={0.05} />
             </mesh>
         </group>
     );
