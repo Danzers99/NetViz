@@ -7,7 +7,7 @@ interface StepWelcomeProps {
 
 export const StepWelcome = ({ onStartNew, onLoadPrevious }: StepWelcomeProps) => {
     return (
-        <div className="flex flex-col items-center justify-center h-full p-6 animate-in fade-in slide-in-from-bottom-4 duration-500">
+        <div className="flex flex-col items-center justify-center min-h-full p-6 animate-in fade-in slide-in-from-bottom-4 duration-500">
             <h1 className="text-4xl font-bold text-slate-900 dark:text-white mb-2 text-center">
                 Welcome to NetViz
             </h1>

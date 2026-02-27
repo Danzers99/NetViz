@@ -283,7 +283,7 @@ export const Layout = ({ children }: { children: ReactNode }) => {
             </div>
 
             {/* Main Content */}
-            <main className="flex-1 overflow-hidden relative bg-slate-50 dark:bg-slate-900">
+            <main className="flex-1 overflow-hidden relative bg-slate-50 dark:bg-slate-900 flex flex-col">
                 {/* Responsive HUD Container */}
                 <div className="absolute top-0 left-0 w-full z-50 pointer-events-none p-4 flex flex-col sm:flex-row sm:items-start gap-4">
                     {/* Left: Alerts & Notifications */}
