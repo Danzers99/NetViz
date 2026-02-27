@@ -1,27 +1,70 @@
 import type { DeviceType, ConnectionState } from '../../types';
 
 export const SwitchModel = ({ type, status, connectionState }: { type: DeviceType, status: string, connectionState?: ConnectionState }) => {
-    // Rack mount style wide metal box
+    // Desktop switch design (Netgear/Trendnet 8-port unmanaged style)
     let color = type === 'managed-switch' ? '#334155' : '#475569';
     if (status === 'offline') color = '#1e293b';
 
-    // Status Light
+    // Status Light Color (used for activity LEDs)
     const ledColor = getScreenColor(status, connectionState);
+    const lanColor = '#eab308'; // Yellow for LAN ports per spec
+    const powerColor = '#4b5563'; // Grey for power port
+    
+    // Switch chassis dimensions
+    const w = 1.4;
+    const h = 0.25;
+    const d = 0.8;
 
     return (
-        <group position={[0, 0.22, 0]}>
+        <group position={[0, h/2 + 0.05, 0]}>
+            {/* Main Chassis */}
             <mesh>
-                <boxGeometry args={[1.8, 0.44, 1.0]} /> {/* Standard 1U-ish ratio */}
-                <meshStandardMaterial color={color} metalness={0.3} />
+                <boxGeometry args={[w, h, d]} />
+                <meshStandardMaterial color={color} metalness={0.4} roughness={0.6} />
             </mesh>
-            {/* Status LED on front */}
-            <mesh position={[-0.8, 0.0, 0.51]}>
-                <sphereGeometry args={[0.04, 16, 16]} />
-                <meshStandardMaterial
-                    color={ledColor}
-                    emissive={ledColor}
-                    emissiveIntensity={status === 'offline' ? 0 : 0.5}
-                />
+            
+            {/* 8 Front Ports (LAN) */}
+            {Array.from({ length: 8 }).map((_, i) => {
+                // Determine port X position across the front face
+                // Range from -w/2 to w/2 with some margin
+                const startX = -w / 2 + 0.15;
+                const endX = w / 2 - 0.15;
+                const step = (endX - startX) / 7;
+                const portX = startX + i * step;
+
+                return (
+                    <group key={`switch-port-${i}`} position={[portX, -0.02, d / 2 + 0.001]}>
+                        {/* Port Recess/Cutout (darker, slightly smaller than the port) */}
+                        <mesh position={[0, -0.01, -0.01]}>
+                            <boxGeometry args={[0.1, 0.1, 0.02]} />
+                            <meshStandardMaterial color="#111827" /> {/* Dark interior */}
+                        </mesh>
+                        {/* Port Contact Area (Yellow LAN) */}
+                        <mesh position={[0, -0.02, 0]}>
+                            <planeGeometry args={[0.08, 0.08]} />
+                            <meshStandardMaterial color={lanColor} />
+                        </mesh>
+                        {/* Link LED above port */}
+                        <mesh position={[-0.03, 0.07, 0]}>
+                            <planeGeometry args={[0.02, 0.02]} />
+                            <meshStandardMaterial 
+                                color={ledColor} 
+                                emissive={ledColor}
+                                emissiveIntensity={status === 'offline' ? 0 : 0.6}
+                            />
+                        </mesh>
+                    </group>
+                );
+            })}
+
+            {/* Rear Power Port */}
+            <mesh position={[w / 2 - 0.2, 0, -d / 2 - 0.005]} rotation={[0, Math.PI, 0]}>
+                <planeGeometry args={[0.1, 0.1]} />
+                <meshStandardMaterial color={powerColor} metalness={0.3} roughness={0.6} />
+            </mesh>
+            <mesh position={[w / 2 - 0.2, 0, -d / 2 + 0.01]} rotation={[-Math.PI / 2, 0, 0]}>
+                <cylinderGeometry args={[0.03, 0.03, 0.02, 16]} />
+                <meshStandardMaterial color="#000000" />
             </mesh>
         </group>
     );
