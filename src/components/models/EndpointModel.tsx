@@ -1,51 +1,27 @@
 import type { DeviceType, ConnectionState } from '../../types';
 
 export const SwitchModel = ({ type, status, connectionState }: { type: DeviceType, status: string, connectionState?: ConnectionState }) => {
-    // Desktop switch design (Netgear/Trendnet 8-port unmanaged style)
+    // Rack mount style wide metal box
     let color = type === 'managed-switch' ? '#334155' : '#475569';
     if (status === 'offline') color = '#1e293b';
 
-    // Status Light Color (used for activity LEDs)
+    // Status Light
     const ledColor = getScreenColor(status, connectionState);
-    const powerColor = '#4b5563'; // Grey for power port
-
-    // Switch chassis dimensions
-    const w = 1.4;
-    const h = 0.25;
-    const d = 0.8;
 
     return (
-        <group position={[0, h / 2 + 0.05, 0]}>
-            {/* Main Chassis */}
+        <group position={[0, 0.22, 0]}>
             <mesh>
-                <boxGeometry args={[w, h, d]} />
-                <meshStandardMaterial color={color} metalness={0.4} roughness={0.6} />
+                <boxGeometry args={[1.8, 0.44, 1.0]} /> {/* Standard 1U-ish ratio */}
+                <meshStandardMaterial color={color} metalness={0.3} />
             </mesh>
-
-            {/* Clean Front Panel Recess for generated ports */}
-            <mesh position={[0, -0.01, d / 2 + 0.005]}>
-                <boxGeometry args={[w - 0.1, h - 0.1, 0.01]} />
-                <meshStandardMaterial color="#111827" /> {/* Dark interior for ports to sit on */}
-            </mesh>
-
-            {/* General Status/Power LED on the far left */}
-            <mesh position={[-w / 2 + 0.08, 0.0, d / 2 + 0.01]}>
-                <circleGeometry args={[0.02, 16]} />
+            {/* Status LED on front */}
+            <mesh position={[-0.8, 0.0, 0.51]}>
+                <sphereGeometry args={[0.04, 16, 16]} />
                 <meshStandardMaterial
                     color={ledColor}
                     emissive={ledColor}
-                    emissiveIntensity={status === 'offline' ? 0 : 0.6}
+                    emissiveIntensity={status === 'offline' ? 0 : 0.5}
                 />
-            </mesh>
-
-            {/* Rear Power Port */}
-            <mesh position={[w / 2 - 0.2, 0, -d / 2 - 0.005]} rotation={[0, Math.PI, 0]}>
-                <planeGeometry args={[0.1, 0.1]} />
-                <meshStandardMaterial color={powerColor} metalness={0.3} roughness={0.6} />
-            </mesh>
-            <mesh position={[w / 2 - 0.2, 0, -d / 2 + 0.01]} rotation={[-Math.PI / 2, 0, 0]}>
-                <cylinderGeometry args={[0.03, 0.03, 0.02, 16]} />
-                <meshStandardMaterial color="#000000" />
             </mesh>
         </group>
     );
