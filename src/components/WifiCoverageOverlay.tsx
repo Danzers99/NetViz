@@ -17,7 +17,6 @@ export const WifiCoverageOverlay = ({ device }: WifiCoverageOverlayProps) => {
 
     // Store access
     const settings = useAppStore((state) => state.settings);
-    const selectedDeviceId = useAppStore((state) => state.selectedDeviceId);
     const rooms = useAppStore((state) => state.rooms); // We need rooms for walls
 
     // Valid types
@@ -121,7 +120,7 @@ export const WifiCoverageOverlay = ({ device }: WifiCoverageOverlayProps) => {
         try {
             // 0. Get Fresh Settings (Direct Store Access)
             const currentSettings = useAppStore.getState().settings;
-            const currentIsVisible = currentSettings.showWifiCoverage || selectedDeviceId === device.id;
+            const currentIsVisible = !!currentSettings.showWifiCoverage;
             // Use frame-accurate dark mode to avoid render-lag sync issues
             const isDarkFrame = currentSettings.darkMode;
 

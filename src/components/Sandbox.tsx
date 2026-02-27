@@ -61,7 +61,10 @@ export const Sandbox = () => {
 
     return (
         <div className="w-full h-full bg-slate-50 dark:bg-slate-900 relative transition-colors duration-300">
-            <Canvas camera={{ position: [0, 10, 10], fov: 50 }} shadows>
+            <Canvas camera={{ position: [0, 10, 10], fov: 50 }} shadows onPointerMissed={() => {
+                useAppStore.getState().clearSelection();
+                useAppStore.getState().selectPort(null);
+            }}>
                 <Suspense fallback={null}>
                     <ambientLight intensity={0.5} />
                     <pointLight position={[10, 10, 10]} intensity={1} castShadow />

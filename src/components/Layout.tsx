@@ -293,13 +293,10 @@ export const Layout = ({ children }: { children: ReactNode }) => {
                         <RuntimeNotifications />
                     </div>
 
-                    {/* Center/Right (moves to new row on mobile): Selected Port Indicator */}
-                    <div className="flex-1 flex justify-center sm:justify-center">
-                        {step === 'sandbox' && <SelectedPortIndicator />}
-                    </div>
-
-                    {/* Spacer for symmetry if needed, or just let flex handle it */}
-                    <div className="hidden sm:block w-0 sm:w-auto flex-1"></div>
+                    {/* Centered indicators — absolutely positioned so sidebar/alerts don't shift them */}
+                </div>
+                <div className="absolute top-4 left-1/2 -translate-x-1/2 flex flex-col items-center gap-1 pointer-events-none z-10">
+                    {step === 'sandbox' && <SelectedPortIndicator />}
                 </div>
                 {children}
             </main>
