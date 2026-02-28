@@ -2,6 +2,7 @@ import { useEffect } from 'react';
 import { useThree, useFrame } from '@react-three/fiber';
 import { Vector3, Plane, Raycaster, Vector2 } from 'three';
 import { useAppStore } from '../store';
+import { SIM_MIN_X, SIM_MAX_X, SIM_MIN_Z, SIM_MAX_Z } from '../utils/constants';
 
 // Minimal interface for OrbitControls to avoid implicit dependency on three-stdlib
 interface OrbitControlsImpl {
@@ -11,12 +12,11 @@ interface OrbitControlsImpl {
     object: { position: Vector3 }; // Camera
 }
 
-// Workspace settings
-// Assuming grid is roughly -20 to 20 based on device placement logic
-const WORKSPACE_MIN_X = -20;
-const WORKSPACE_MAX_X = 20;
-const WORKSPACE_MIN_Z = -20;
-const WORKSPACE_MAX_Z = 20;
+// Workspace settings — bounds come from the shared simulation constants
+const WORKSPACE_MIN_X = SIM_MIN_X;
+const WORKSPACE_MAX_X = SIM_MAX_X;
+const WORKSPACE_MIN_Z = SIM_MIN_Z;
+const WORKSPACE_MAX_Z = SIM_MAX_Z;
 const MARGIN = 5;
 
 // Expanded bounds (Constraints)

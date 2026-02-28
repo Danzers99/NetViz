@@ -9,6 +9,7 @@ import { EloKDSModel } from './models/EloKDSModel';
 import { useDraggable } from '../hooks/useDraggable';
 import { getPortPosition } from '../utils/layout';
 import { getEffectiveStatus } from '../utils/deviceStatus';
+import { SIM_MIN_X, SIM_MAX_X, SIM_MIN_Z, SIM_MAX_Z, DEVICE_HALF_EXTENT } from '../utils/constants';
 
 const DEVICE_COLORS: Record<string, string> = {
     // Infrastructure
@@ -91,13 +92,16 @@ export const DeviceNode = ({ device }: { device: Device }) => {
             initialPositionsRef.current = initialPositions;
         },
         onDrag: (snappedDelta) => {
-            // Apply to ALL initial positions
+            // Apply to ALL initial positions, clamped to simulation grid bounds
+            const clampMin = DEVICE_HALF_EXTENT;
             const updates: Record<string, [number, number, number]> = {};
             Object.entries(initialPositionsRef.current).forEach(([id, initPos]) => {
+                const rawX = initPos[0] + snappedDelta.x;
+                const rawZ = initPos[2] + snappedDelta.z;
                 updates[id] = [
-                    initPos[0] + snappedDelta.x,
+                    Math.max(SIM_MIN_X + clampMin, Math.min(SIM_MAX_X - clampMin, rawX)),
                     initPos[1],
-                    initPos[2] + snappedDelta.z
+                    Math.max(SIM_MIN_Z + clampMin, Math.min(SIM_MAX_Z - clampMin, rawZ)),
                 ];
             });
             updateDevicePositions(updates);
