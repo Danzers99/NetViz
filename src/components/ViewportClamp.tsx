@@ -13,10 +13,10 @@ interface OrbitControlsImpl {
 
 // Workspace settings
 // Assuming grid is roughly -20 to 20 based on device placement logic
-const WORKSPACE_MIN_X = -20;
-const WORKSPACE_MAX_X = 20;
-const WORKSPACE_MIN_Z = -20;
-const WORKSPACE_MAX_Z = 20;
+export const WORKSPACE_MIN_X = -20;
+export const WORKSPACE_MAX_X = 20;
+export const WORKSPACE_MIN_Z = -20;
+export const WORKSPACE_MAX_Z = 20;
 const MARGIN = 5;
 
 // Expanded bounds (Constraints)

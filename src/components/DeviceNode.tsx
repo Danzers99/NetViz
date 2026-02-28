@@ -9,6 +9,11 @@ import { EloKDSModel } from './models/EloKDSModel';
 import { useDraggable } from '../hooks/useDraggable';
 import { getPortPosition } from '../utils/layout';
 import { getEffectiveStatus } from '../utils/deviceStatus';
+import { WORKSPACE_MIN_X, WORKSPACE_MAX_X, WORKSPACE_MIN_Z, WORKSPACE_MAX_Z } from './ViewportClamp';
+
+// Conservative half-size margin to keep the entire device body within bounds.
+// Covers the largest device footprint (managed switch: 1.8 wide × 1.0 deep).
+const DEVICE_HALF_EXTENT = 1.0;
 
 const DEVICE_COLORS: Record<string, string> = {
     // Infrastructure
@@ -91,13 +96,35 @@ export const DeviceNode = ({ device }: { device: Device }) => {
             initialPositionsRef.current = initialPositions;
         },
         onDrag: (snappedDelta) => {
-            // Apply to ALL initial positions
+            // Clamp delta so ALL dragged devices stay within workspace bounds.
+            // Compute the tightest allowed delta range across the group to
+            // preserve relative positions during multi-select drag.
+            const minBoundX = WORKSPACE_MIN_X + DEVICE_HALF_EXTENT;
+            const maxBoundX = WORKSPACE_MAX_X - DEVICE_HALF_EXTENT;
+            const minBoundZ = WORKSPACE_MIN_Z + DEVICE_HALF_EXTENT;
+            const maxBoundZ = WORKSPACE_MAX_Z - DEVICE_HALF_EXTENT;
+
+            let minAllowedDx = -Infinity;
+            let maxAllowedDx = Infinity;
+            let minAllowedDz = -Infinity;
+            let maxAllowedDz = Infinity;
+
+            for (const initPos of Object.values(initialPositionsRef.current)) {
+                minAllowedDx = Math.max(minAllowedDx, minBoundX - initPos[0]);
+                maxAllowedDx = Math.min(maxAllowedDx, maxBoundX - initPos[0]);
+                minAllowedDz = Math.max(minAllowedDz, minBoundZ - initPos[2]);
+                maxAllowedDz = Math.min(maxAllowedDz, maxBoundZ - initPos[2]);
+            }
+
+            const clampedDx = Math.max(minAllowedDx, Math.min(maxAllowedDx, snappedDelta.x));
+            const clampedDz = Math.max(minAllowedDz, Math.min(maxAllowedDz, snappedDelta.z));
+
             const updates: Record<string, [number, number, number]> = {};
             Object.entries(initialPositionsRef.current).forEach(([id, initPos]) => {
                 updates[id] = [
-                    initPos[0] + snappedDelta.x,
+                    initPos[0] + clampedDx,
                     initPos[1],
-                    initPos[2] + snappedDelta.z
+                    initPos[2] + clampedDz
                 ];
             });
             updateDevicePositions(updates);
