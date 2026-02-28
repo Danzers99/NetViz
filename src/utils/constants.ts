@@ -12,8 +12,11 @@ export const SIM_MIN_Z = -GRID_HALF_SIZE;
 export const SIM_MAX_Z = GRID_HALF_SIZE;
 
 /**
- * Half-extent of a device in world space (X/Z plane).
- * Applied as an inset on each edge so the device body stays fully within the grid,
- * rather than letting the origin sit at the boundary with half the mesh hanging outside.
+ * Device drag boundary half-size.
+ *
+ * The visible viewport extends VIEWPORT_MARGIN (5) units beyond the base
+ * GRID_HALF_SIZE (see ViewportClamp). We allow device origins up to 1 grid
+ * unit inside that visible edge, giving an effective drag range of ±24.
  */
-export const DEVICE_HALF_EXTENT = 0.5;
+export const VIEWPORT_MARGIN = 5;
+export const DRAG_BOUND_HALF_SIZE = GRID_HALF_SIZE + VIEWPORT_MARGIN - 1; // 24

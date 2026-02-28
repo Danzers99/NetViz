@@ -2,7 +2,7 @@ import { useEffect } from 'react';
 import { useThree, useFrame } from '@react-three/fiber';
 import { Vector3, Plane, Raycaster, Vector2 } from 'three';
 import { useAppStore } from '../store';
-import { SIM_MIN_X, SIM_MAX_X, SIM_MIN_Z, SIM_MAX_Z } from '../utils/constants';
+import { SIM_MIN_X, SIM_MAX_X, SIM_MIN_Z, SIM_MAX_Z, VIEWPORT_MARGIN } from '../utils/constants';
 
 // Minimal interface for OrbitControls to avoid implicit dependency on three-stdlib
 interface OrbitControlsImpl {
@@ -17,7 +17,7 @@ const WORKSPACE_MIN_X = SIM_MIN_X;
 const WORKSPACE_MAX_X = SIM_MAX_X;
 const WORKSPACE_MIN_Z = SIM_MIN_Z;
 const WORKSPACE_MAX_Z = SIM_MAX_Z;
-const MARGIN = 5;
+const MARGIN = VIEWPORT_MARGIN;
 
 // Expanded bounds (Constraints)
 const EXP_MIN_X = WORKSPACE_MIN_X - MARGIN;
