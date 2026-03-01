@@ -131,6 +131,7 @@ export interface ProjectInfo {
     cakeId?: string;
     createdAt?: string;
     updatedAt?: string;
+    lastCloudSyncAt?: number;
 }
 
 export interface ConfigData {

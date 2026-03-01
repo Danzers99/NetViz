@@ -1,6 +1,6 @@
 import { useState, useRef, type ReactNode } from 'react';
 import { useAppStore } from '../store';
-import { LayoutGrid, Settings, HelpCircle, RotateCcw, Save as SaveIcon, FolderOpen, History, Network, Database, CloudUpload } from 'lucide-react';
+import { LayoutGrid, Settings, HelpCircle, RotateCcw, Save as SaveIcon, FolderOpen, History, Network, Database } from 'lucide-react';
 import { NetworkDiagram } from './NetworkDiagram';
 import { Alerts } from './Alerts';
 import { SettingsPanel } from './SettingsPanel';
@@ -12,8 +12,8 @@ import { useEffect } from 'react';
 import { SaveDialog } from './SaveDialog';
 import { HistoryPanel } from './HistoryPanel';
 import { AccountsPage } from './AccountsPage';
-import { SaveToAccountsDialog } from './SaveToAccountsDialog';
 import { SupportCodeModal } from './SupportCodeModal';
+import { CloudSyncIndicator } from './CloudSyncIndicator';
 import { generateUUID } from '../utils/uuid';
 import type { Revision } from '../types';
 
@@ -32,13 +32,11 @@ export const Layout = ({ children }: { children: ReactNode }) => {
     const setHistoryOpen = useAppStore((state) => state.setHistoryOpen);
     const isSettingsOpen = useAppStore((state) => state.isSettingsOpen);
     const setSettingsOpen = useAppStore((state) => state.setSettingsOpen);
-    const saveToAccounts = useAppStore((state) => state.saveToAccounts);
     const isSupportMode = useAppStore((state) => state.isSupportMode);
     const activeView = useAppStore((state) => state.activeView);
     const setActiveView = useAppStore((state) => state.setActiveView);
 
     const [showSaveDialog, setShowSaveDialog] = useState(false);
-    const [showSaveToAccountsDialog, setShowSaveToAccountsDialog] = useState(false);
     const [pendingAutoSummary, setPendingAutoSummary] = useState('');
     const [showDiagram, setShowDiagram] = useState(false);
     const [showSupportCodeModal, setShowSupportCodeModal] = useState(false);
@@ -190,21 +188,16 @@ export const Layout = ({ children }: { children: ReactNode }) => {
             <SaveDialog
                 isOpen={showSaveDialog}
                 autoSummary={pendingAutoSummary}
-                onSave={(note) => {
+                onSave={(note, cloudSync) => {
                     setShowSaveDialog(false);
-                    // IMPORTANT: Pass note to executeSave
-                    setTimeout(() => executeSave(note), 0);
+                    setTimeout(() => {
+                        executeSave(note);
+                        if (cloudSync) {
+                            useAppStore.getState().saveToAccountsFromDialog(cloudSync.name, cloudSync.cakeId);
+                        }
+                    }, 0);
                 }}
                 onCancel={() => setShowSaveDialog(false)}
-            />
-
-            <SaveToAccountsDialog
-                isOpen={showSaveToAccountsDialog}
-                onSave={(name, cakeId) => {
-                    setShowSaveToAccountsDialog(false);
-                    saveToAccounts(name, cakeId);
-                }}
-                onCancel={() => setShowSaveToAccountsDialog(false)}
             />
 
             {showSupportCodeModal && (
@@ -293,16 +286,6 @@ export const Layout = ({ children }: { children: ReactNode }) => {
                                 <SaveIcon size={20} />
                                 <span className="hidden md:block">Save</span>
                             </button>
-                            {isSupportMode && (
-                                <button
-                                    onClick={() => setShowSaveToAccountsDialog(true)}
-                                    className="w-full flex items-center gap-3 px-3 py-2 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-700 transition-colors font-medium"
-                                    title="Save to Accounts (Cloud)"
-                                >
-                                    <CloudUpload size={20} />
-                                    <span className="hidden md:block">Save to Accounts</span>
-                                </button>
-                            )}
                             <button
                                 onClick={handleLoadClick}
                                 className="w-full flex items-center gap-3 px-3 py-2 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-700 transition-colors font-medium"
@@ -331,6 +314,9 @@ export const Layout = ({ children }: { children: ReactNode }) => {
                                 <span className="hidden md:block">Reset</span>
                             </button>
                         </>
+                    )}
+                    {isSupportMode && step === 'sandbox' && (
+                        <CloudSyncIndicator />
                     )}
                     <a
                         href="https://app.getguru.com/dashboard"

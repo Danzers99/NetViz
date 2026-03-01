@@ -112,7 +112,7 @@ interface AppState {
 
     // Accounts (Cloud Persistence)
     isSavingToAccounts: boolean;
-    saveToAccounts: (name: string, cakeId: string) => Promise<void>;
+    saveToAccountsFromDialog: (name: string, cakeId: string) => Promise<void>;
     loadFromAccounts: (cakeId: string) => Promise<void>;
 
     // Camera
@@ -758,22 +758,25 @@ export const useAppStore = create<AppState>((set, get) => ({
     }),
 
     isSavingToAccounts: false,
-    saveToAccounts: async (name: string, cakeId: string) => {
-        // Update projectInfo with user-edited name and cakeId before exporting
+    saveToAccountsFromDialog: async (name: string, cakeId: string) => {
         set({ isSavingToAccounts: true, projectInfo: { ...get().projectInfo, name, cakeId } });
         try {
             const config = get().exportConfig();
             await saveAccount(cakeId, config, name);
-            set({ notification: { message: `Saved to Accounts (CAKE ${cakeId})`, type: 'success' }, isSavingToAccounts: false });
+            set({
+                projectInfo: { ...get().projectInfo, lastCloudSyncAt: Date.now() },
+                notification: { message: `Synced to cloud (CAKE ${cakeId})`, type: 'success' },
+                isSavingToAccounts: false,
+            });
         } catch (error) {
             console.error('Failed to save to accounts:', error);
-            set({ notification: { message: `Failed to save: ${error instanceof Error ? error.message : 'Unknown error'}`, type: 'error' }, isSavingToAccounts: false });
+            set({ notification: { message: `Cloud sync failed: ${error instanceof Error ? error.message : 'Unknown error'}`, type: 'error' }, isSavingToAccounts: false });
         }
     },
     loadFromAccounts: async (cakeId: string) => {
         try {
             const { config } = await loadAccount(cakeId);
-            config.projectInfo = { ...config.projectInfo, cakeId };
+            config.projectInfo = { ...config.projectInfo, cakeId, lastCloudSyncAt: Date.now() };
             get().importConfig(config);
             set({ activeView: 'visualizer', notification: { message: `Loaded account map for CAKE ${cakeId}`, type: 'success' } });
         } catch (error) {
