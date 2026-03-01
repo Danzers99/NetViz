@@ -1,6 +1,6 @@
 import { useState, useRef, type ReactNode } from 'react';
 import { useAppStore } from '../store';
-import { LayoutGrid, Settings, HelpCircle, RotateCcw, Save as SaveIcon, FolderOpen, History, ClipboardList, Network, Database, CloudUpload } from 'lucide-react';
+import { LayoutGrid, Settings, HelpCircle, RotateCcw, Save as SaveIcon, FolderOpen, History, Network, Database, CloudUpload } from 'lucide-react';
 import { NetworkDiagram } from './NetworkDiagram';
 import { Alerts } from './Alerts';
 import { SettingsPanel } from './SettingsPanel';
@@ -11,10 +11,10 @@ import { Toast } from './Toast';
 import { useEffect } from 'react';
 import { SaveDialog } from './SaveDialog';
 import { HistoryPanel } from './HistoryPanel';
-import { AccountsPanel } from './AccountsPanel';
+import { AccountsPage } from './AccountsPage';
 import { SaveToAccountsDialog } from './SaveToAccountsDialog';
+import { SupportCodeModal } from './SupportCodeModal';
 import { generateUUID } from '../utils/uuid';
-import { generateTopologySummary, copyToClipboard } from '../utils/exportReport';
 import type { Revision } from '../types';
 
 
@@ -32,17 +32,36 @@ export const Layout = ({ children }: { children: ReactNode }) => {
     const setHistoryOpen = useAppStore((state) => state.setHistoryOpen);
     const isSettingsOpen = useAppStore((state) => state.isSettingsOpen);
     const setSettingsOpen = useAppStore((state) => state.setSettingsOpen);
-    const isAccountsOpen = useAppStore((state) => state.isAccountsOpen);
-    const setAccountsOpen = useAppStore((state) => state.setAccountsOpen);
     const saveToAccounts = useAppStore((state) => state.saveToAccounts);
+    const isSupportMode = useAppStore((state) => state.isSupportMode);
+    const activeView = useAppStore((state) => state.activeView);
+    const setActiveView = useAppStore((state) => state.setActiveView);
 
     const [showSaveDialog, setShowSaveDialog] = useState(false);
     const [showSaveToAccountsDialog, setShowSaveToAccountsDialog] = useState(false);
     const [pendingAutoSummary, setPendingAutoSummary] = useState('');
     const [showDiagram, setShowDiagram] = useState(false);
+    const [showSupportCodeModal, setShowSupportCodeModal] = useState(false);
+
+    // Hidden unlock: Shift+click logo 5 times
+    const [shiftClickCount, setShiftClickCount] = useState(0);
+    const shiftClickTimerRef = useRef<ReturnType<typeof setTimeout>>(undefined);
 
     const fileInputRef = useRef<HTMLInputElement>(null);
     const lastSavedDevicesRef = useRef<string>('');
+
+    const handleLogoClick = (e: React.MouseEvent) => {
+        if (!e.shiftKey) return;
+        clearTimeout(shiftClickTimerRef.current);
+        const newCount = shiftClickCount + 1;
+        if (newCount >= 5) {
+            setShiftClickCount(0);
+            setShowSupportCodeModal(true);
+        } else {
+            setShiftClickCount(newCount);
+            shiftClickTimerRef.current = setTimeout(() => setShiftClickCount(0), 3000);
+        }
+    };
 
     const executeSave = (manualNote: string) => {
         // Get fresh state to ensure we have the latest userName after the prompt
@@ -173,8 +192,6 @@ export const Layout = ({ children }: { children: ReactNode }) => {
                 autoSummary={pendingAutoSummary}
                 onSave={(note) => {
                     setShowSaveDialog(false);
-                    // Use timeout to allow UI to clear slightly before heavy export work? 
-                    // Not strictly necessary but feels better. 
                     // IMPORTANT: Pass note to executeSave
                     setTimeout(() => executeSave(note), 0);
                 }}
@@ -190,24 +207,42 @@ export const Layout = ({ children }: { children: ReactNode }) => {
                 onCancel={() => setShowSaveToAccountsDialog(false)}
             />
 
+            {showSupportCodeModal && (
+                <SupportCodeModal onClose={() => setShowSupportCodeModal(false)} />
+            )}
+
             {isSettingsOpen && <SettingsPanel onClose={() => setSettingsOpen(false)} />}
             {isHistoryOpen && step === 'sandbox' && <HistoryPanel onClose={() => setHistoryOpen(false)} />}
-            {isAccountsOpen && <AccountsPanel onClose={() => setAccountsOpen(false)} />}
             {showDiagram && <NetworkDiagram onClose={() => setShowDiagram(false)} />}
 
             <DeviceProperties />
 
             {/* Sidebar */}
             <div className="w-16 md:w-64 bg-white dark:bg-slate-800 text-slate-600 dark:text-slate-300 flex flex-col border-r border-slate-200 dark:border-slate-700 z-30 relative">
-                <div className="p-4 flex items-center gap-3 border-b border-slate-200 dark:border-slate-700">
+                <div
+                    className="p-4 flex items-center gap-3 border-b border-slate-200 dark:border-slate-700 cursor-default select-none"
+                    onClick={handleLogoClick}
+                >
                     <div className="w-8 h-8 bg-orange-500 rounded-lg flex items-center justify-center text-white font-bold shadow-lg shadow-orange-500/30">
                         N
                     </div>
                     <span className="font-bold text-slate-800 dark:text-white hidden md:block tracking-tight">NetViz</span>
+                    {isSupportMode && (
+                        <span className="ml-auto text-[9px] font-semibold text-green-600 dark:text-green-400 bg-green-100 dark:bg-green-900/30 px-1.5 py-0.5 rounded hidden md:block">
+                            SUPPORT
+                        </span>
+                    )}
                 </div>
 
                 <nav className="flex-1 p-2 space-y-1">
-                    <button className="w-full flex items-center gap-3 px-3 py-2 rounded-lg bg-orange-50 dark:bg-orange-900/20 text-orange-600 dark:text-orange-400 font-medium">
+                    <button
+                        onClick={() => setActiveView('visualizer')}
+                        className={`w-full flex items-center gap-3 px-3 py-2 rounded-lg font-medium transition-colors ${
+                            activeView === 'visualizer'
+                                ? 'bg-orange-50 dark:bg-orange-900/20 text-orange-600 dark:text-orange-400'
+                                : 'hover:bg-slate-100 dark:hover:bg-slate-700'
+                        }`}
+                    >
                         <LayoutGrid size={20} />
                         <span className="hidden md:block">Visualizer</span>
                     </button>
@@ -221,7 +256,7 @@ export const Layout = ({ children }: { children: ReactNode }) => {
                         <span className="hidden md:block">Settings</span>
                     </button>
 
-                    {step === 'sandbox' && (
+                    {step === 'sandbox' && activeView === 'visualizer' && (
                         <button
                             onClick={() => setHistoryOpen(!isHistoryOpen)}
                             className={`w-full flex items-center gap-3 px-3 py-2 rounded-lg transition-colors font-medium ${isHistoryOpen ? 'bg-slate-100 dark:bg-slate-700 text-slate-900 dark:text-slate-100' : 'hover:bg-slate-100 dark:hover:bg-slate-700'
@@ -232,18 +267,23 @@ export const Layout = ({ children }: { children: ReactNode }) => {
                         </button>
                     )}
 
-                    <button
-                        onClick={() => setAccountsOpen(!isAccountsOpen)}
-                        className={`w-full flex items-center gap-3 px-3 py-2 rounded-lg transition-colors font-medium ${isAccountsOpen ? 'bg-slate-100 dark:bg-slate-700 text-slate-900 dark:text-slate-100' : 'hover:bg-slate-100 dark:hover:bg-slate-700'
+                    {isSupportMode && (
+                        <button
+                            onClick={() => setActiveView(activeView === 'accounts' ? 'visualizer' : 'accounts')}
+                            className={`w-full flex items-center gap-3 px-3 py-2 rounded-lg transition-colors font-medium ${
+                                activeView === 'accounts'
+                                    ? 'bg-orange-50 dark:bg-orange-900/20 text-orange-600 dark:text-orange-400'
+                                    : 'hover:bg-slate-100 dark:hover:bg-slate-700'
                             }`}
-                    >
-                        <Database size={20} />
-                        <span className="hidden md:block">Accounts</span>
-                    </button>
+                        >
+                            <Database size={20} />
+                            <span className="hidden md:block">Accounts</span>
+                        </button>
+                    )}
                 </nav>
 
                 <div className="p-2 border-t border-slate-200 dark:border-slate-700 space-y-1">
-                    {step === 'sandbox' && (
+                    {step === 'sandbox' && activeView === 'visualizer' && (
                         <>
                             <button
                                 onClick={handleSaveClick}
@@ -253,14 +293,16 @@ export const Layout = ({ children }: { children: ReactNode }) => {
                                 <SaveIcon size={20} />
                                 <span className="hidden md:block">Save</span>
                             </button>
-                            <button
-                                onClick={() => setShowSaveToAccountsDialog(true)}
-                                className="w-full flex items-center gap-3 px-3 py-2 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-700 transition-colors font-medium"
-                                title="Save to Accounts (Cloud)"
-                            >
-                                <CloudUpload size={20} />
-                                <span className="hidden md:block">Save to Accounts</span>
-                            </button>
+                            {isSupportMode && (
+                                <button
+                                    onClick={() => setShowSaveToAccountsDialog(true)}
+                                    className="w-full flex items-center gap-3 px-3 py-2 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-700 transition-colors font-medium"
+                                    title="Save to Accounts (Cloud)"
+                                >
+                                    <CloudUpload size={20} />
+                                    <span className="hidden md:block">Save to Accounts</span>
+                                </button>
+                            )}
                             <button
                                 onClick={handleLoadClick}
                                 className="w-full flex items-center gap-3 px-3 py-2 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-700 transition-colors font-medium"
@@ -268,17 +310,6 @@ export const Layout = ({ children }: { children: ReactNode }) => {
                             >
                                 <FolderOpen size={20} />
                                 <span className="hidden md:block">Load</span>
-                            </button>
-                            <button
-                                onClick={() => {
-                                    const summary = generateTopologySummary();
-                                    copyToClipboard(summary, 'Network summary copied');
-                                }}
-                                className="w-full flex items-center gap-3 px-3 py-2 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-700 transition-colors font-medium"
-                                title="Copy network summary to clipboard"
-                            >
-                                <ClipboardList size={20} />
-                                <span className="hidden md:block">Copy Summary</span>
                             </button>
                             <button
                                 onClick={() => setShowDiagram(true)}
@@ -315,21 +346,28 @@ export const Layout = ({ children }: { children: ReactNode }) => {
 
             {/* Main Content */}
             <main className="flex-1 overflow-hidden relative bg-slate-50 dark:bg-slate-900 flex flex-col">
-                {/* Responsive HUD Container */}
-                <div className="absolute top-0 left-0 w-full z-50 pointer-events-none p-4 flex flex-col sm:flex-row sm:items-start gap-4">
-                    {/* Left: Alerts & Notifications */}
-                    <div className="flex flex-col gap-2 items-start max-w-md w-full sm:w-auto">
-                        <Alerts />
-                        <RuntimeNotifications />
-                    </div>
-
-                    {/* Centered indicators — absolutely positioned so sidebar/alerts don't shift them */}
-                </div>
-                <div className="absolute top-4 left-1/2 -translate-x-1/2 flex flex-col items-center gap-1 pointer-events-none z-10">
-                    {step === 'sandbox' && <SelectedPortIndicator />}
-                </div>
-                <Toast />
-                {children}
+                {activeView === 'visualizer' ? (
+                    <>
+                        {/* Responsive HUD Container */}
+                        <div className="absolute top-0 left-0 w-full z-50 pointer-events-none p-4 flex flex-col sm:flex-row sm:items-start gap-4">
+                            {/* Left: Alerts & Notifications */}
+                            <div className="flex flex-col gap-2 items-start max-w-md w-full sm:w-auto">
+                                <Alerts />
+                                <RuntimeNotifications />
+                            </div>
+                        </div>
+                        <div className="absolute top-4 left-1/2 -translate-x-1/2 flex flex-col items-center gap-1 pointer-events-none z-10">
+                            {step === 'sandbox' && <SelectedPortIndicator />}
+                        </div>
+                        <Toast />
+                        {children}
+                    </>
+                ) : (
+                    <>
+                        <Toast />
+                        <AccountsPage />
+                    </>
+                )}
             </main>
 
             <input

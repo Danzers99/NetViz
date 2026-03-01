@@ -8,6 +8,7 @@ import type { ValidationError } from './validation';
 import type { Device, DeviceType, Port, Settings, DeviceAction, ConfigData, ProjectInfo, Room, RoomType, Revision } from './types';
 import { migrateConfig, validateAndSanitizeConfig, CURRENT_SCHEMA_VERSION, loadSettingsFromStorage, saveSettingsToStorage } from './utils/persistence';
 import { saveAccount, loadAccount } from './utils/accountsApi';
+import { isSupportModeActive, activateSupportMode, deactivateSupportMode, getSupportModeExpiresAt } from './utils/supportMode';
 
 interface AppState {
     step: 'wizard' | 'sandbox';
@@ -100,8 +101,14 @@ interface AppState {
     setHistoryOpen: (open: boolean) => void;
     isSettingsOpen: boolean;
     setSettingsOpen: (open: boolean) => void;
-    isAccountsOpen: boolean;
-    setAccountsOpen: (open: boolean) => void;
+    // Support Mode
+    isSupportMode: boolean;
+    enableSupportMode: () => void;
+    disableSupportMode: () => void;
+
+    // View Routing (separate from wizard/sandbox step)
+    activeView: 'visualizer' | 'accounts';
+    setActiveView: (view: 'visualizer' | 'accounts') => void;
 
     // Accounts (Cloud Persistence)
     isSavingToAccounts: boolean;
@@ -715,23 +722,39 @@ export const useAppStore = create<AppState>((set, get) => ({
 
     setHistoryOpen: (open) => set({
         isHistoryOpen: open,
-        ...(open ? { propertiesPanelDeviceId: null, isSettingsOpen: false, isAccountsOpen: false } : {})
+        ...(open ? { propertiesPanelDeviceId: null, isSettingsOpen: false } : {})
     }),
 
     setPropertiesPanelDeviceId: (id: string | null) => set({
         propertiesPanelDeviceId: id,
-        ...(id ? { isHistoryOpen: false, isSettingsOpen: false, isAccountsOpen: false } : {})
+        ...(id ? { isHistoryOpen: false, isSettingsOpen: false } : {})
     }),
 
     setSettingsOpen: (open: boolean) => set({
         isSettingsOpen: open,
-        ...(open ? { isHistoryOpen: false, propertiesPanelDeviceId: null, isAccountsOpen: false } : {})
+        ...(open ? { isHistoryOpen: false, propertiesPanelDeviceId: null } : {})
     }),
 
-    isAccountsOpen: false,
-    setAccountsOpen: (open: boolean) => set({
-        isAccountsOpen: open,
-        ...(open ? { isHistoryOpen: false, isSettingsOpen: false, propertiesPanelDeviceId: null } : {})
+    // Support Mode
+    isSupportMode: isSupportModeActive(),
+    enableSupportMode: () => {
+        activateSupportMode();
+        set({ isSupportMode: true });
+    },
+    disableSupportMode: () => {
+        deactivateSupportMode();
+        set({ isSupportMode: false, activeView: 'visualizer' });
+    },
+
+    // View Routing
+    activeView: 'visualizer' as const,
+    setActiveView: (view) => set({
+        activeView: view,
+        ...(view === 'accounts' ? {
+            isHistoryOpen: false,
+            isSettingsOpen: false,
+            propertiesPanelDeviceId: null,
+        } : {}),
     }),
 
     isSavingToAccounts: false,
@@ -752,7 +775,7 @@ export const useAppStore = create<AppState>((set, get) => ({
             const { config } = await loadAccount(cakeId);
             config.projectInfo = { ...config.projectInfo, cakeId };
             get().importConfig(config);
-            set({ isAccountsOpen: false, notification: { message: `Loaded account map for CAKE ${cakeId}`, type: 'success' } });
+            set({ activeView: 'visualizer', notification: { message: `Loaded account map for CAKE ${cakeId}`, type: 'success' } });
         } catch (error) {
             console.error('Failed to load from accounts:', error);
             set({ notification: { message: `Failed to load account: ${error instanceof Error ? error.message : 'Unknown error'}`, type: 'error' } });
@@ -793,6 +816,7 @@ export const useAppStore = create<AppState>((set, get) => ({
 
     reset: () => set({
         step: 'wizard',
+        activeView: 'visualizer',
         devices: [],
         rooms: [],
         revisions: [],
@@ -1002,3 +1026,18 @@ export const useAppStore = create<AppState>((set, get) => ({
         }
     },
 }));
+
+// Auto-disable support mode when it expires
+if (useAppStore.getState().isSupportMode) {
+    const expiresAt = getSupportModeExpiresAt();
+    if (expiresAt) {
+        const remaining = expiresAt - Date.now();
+        if (remaining > 0) {
+            setTimeout(() => {
+                if (useAppStore.getState().isSupportMode) {
+                    useAppStore.getState().disableSupportMode();
+                }
+            }, remaining);
+        }
+    }
+}

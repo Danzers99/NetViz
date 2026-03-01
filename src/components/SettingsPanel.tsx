@@ -1,6 +1,7 @@
 import { useState } from 'react';
-import { X, Settings as SettingsIcon, Play, ChevronDown, ChevronRight } from 'lucide-react';
+import { X, Settings as SettingsIcon, Play, ChevronDown, ChevronRight, ClipboardList } from 'lucide-react';
 import { useAppStore } from '../store';
+import { generateTopologySummary, copyToClipboard } from '../utils/exportReport';
 
 interface SectionProps {
     title: string;
@@ -65,6 +66,7 @@ const ToggleRow = ({ label, description, shortcut, active, onToggle }: ToggleRow
 export const SettingsPanel = ({ onClose }: { onClose: () => void }) => {
     const settings = useAppStore((state) => state.settings);
     const updateSettings = useAppStore((state) => state.updateSettings);
+    const isSupportMode = useAppStore((state) => state.isSupportMode);
 
     return (
         <div className="fixed inset-y-0 right-0 w-80 bg-white dark:bg-slate-800 shadow-2xl z-50 transform transition-transform duration-300 ease-in-out border-l border-slate-200 dark:border-slate-700 flex flex-col">
@@ -185,6 +187,53 @@ export const SettingsPanel = ({ onClose }: { onClose: () => void }) => {
                         </button>
                     </div>
                 </CollapsibleSection>
+
+                <hr className="border-slate-100 dark:border-slate-700" />
+
+                {/* ── Export / Diagnostics ── */}
+                <CollapsibleSection title="Export / Diagnostics">
+                    <div className="flex items-center justify-between">
+                        <div className="min-w-0 mr-3">
+                            <label className="text-slate-700 dark:text-slate-300 text-sm font-medium block">Copy Summary</label>
+                            <span className="text-[10px] text-slate-400 leading-tight">Copy network topology to clipboard</span>
+                        </div>
+                        <button
+                            onClick={() => {
+                                const summary = generateTopologySummary();
+                                copyToClipboard(summary, 'Network summary copied');
+                            }}
+                            className="px-4 py-1.5 bg-slate-200 dark:bg-slate-700 hover:bg-slate-300 dark:hover:bg-slate-600 rounded text-sm text-slate-700 dark:text-slate-300 font-medium transition-colors flex items-center gap-2"
+                        >
+                            <ClipboardList size={14} />
+                            Copy
+                        </button>
+                    </div>
+                </CollapsibleSection>
+
+                {isSupportMode && (
+                    <>
+                        <hr className="border-slate-100 dark:border-slate-700" />
+
+                        {/* ── Support Mode ── */}
+                        <CollapsibleSection title="Support Mode">
+                            <div className="flex items-center justify-between">
+                                <div className="min-w-0 mr-3">
+                                    <label className="text-slate-700 dark:text-slate-300 text-sm font-medium block">Support Mode Active</label>
+                                    <span className="text-[10px] text-slate-400 leading-tight">Cloud accounts features are enabled</span>
+                                </div>
+                                <button
+                                    onClick={() => {
+                                        useAppStore.getState().disableSupportMode();
+                                        onClose();
+                                    }}
+                                    className="px-4 py-1.5 bg-red-50 dark:bg-red-900/20 hover:bg-red-100 dark:hover:bg-red-900/40 rounded text-sm text-red-600 dark:text-red-400 font-medium transition-colors"
+                                >
+                                    Disable
+                                </button>
+                            </div>
+                        </CollapsibleSection>
+                    </>
+                )}
 
                 <hr className="border-slate-100 dark:border-slate-700" />
 
