@@ -11,6 +11,15 @@ function authHeaders(): HeadersInit {
     return headers;
 }
 
+async function parseApiError(res: Response, fallback: string): Promise<string> {
+    try {
+        const body = await res.json();
+        if (body?.message) return body.message;
+        if (body?.error) return body.error;
+    } catch { /* response wasn't JSON */ }
+    return `${fallback} (HTTP ${res.status})`;
+}
+
 export interface AccountSearchResult {
     cakeId: string;
     name: string;
@@ -23,7 +32,7 @@ export async function searchAccounts(query: string): Promise<AccountSearchResult
     const res = await fetch(`${API_BASE}/search?q=${encodeURIComponent(query)}`, {
         headers: authHeaders(),
     });
-    if (!res.ok) throw new Error(`Search failed: ${res.status}`);
+    if (!res.ok) throw new Error(await parseApiError(res, 'Search failed'));
     const data = await res.json();
     return data.results;
 }
@@ -32,15 +41,15 @@ export async function loadAccount(cakeId: string): Promise<{ cakeId: string; nam
     const res = await fetch(`${API_BASE}/${encodeURIComponent(cakeId)}`, {
         headers: authHeaders(),
     });
-    if (!res.ok) throw new Error(`Load failed: ${res.status}`);
+    if (!res.ok) throw new Error(await parseApiError(res, 'Load failed'));
     return res.json();
 }
 
-export async function saveAccount(cakeId: string, config: ConfigData): Promise<void> {
+export async function saveAccount(cakeId: string, config: ConfigData, name?: string): Promise<void> {
     const res = await fetch(`${API_BASE}/${encodeURIComponent(cakeId)}`, {
         method: 'PUT',
         headers: authHeaders(),
-        body: JSON.stringify({ config }),
+        body: JSON.stringify({ config, name }),
     });
-    if (!res.ok) throw new Error(`Save failed: ${res.status}`);
+    if (!res.ok) throw new Error(await parseApiError(res, 'Save failed'));
 }

@@ -183,9 +183,9 @@ export const Layout = ({ children }: { children: ReactNode }) => {
 
             <SaveToAccountsDialog
                 isOpen={showSaveToAccountsDialog}
-                onSave={() => {
+                onSave={(name, cakeId) => {
                     setShowSaveToAccountsDialog(false);
-                    saveToAccounts();
+                    saveToAccounts(name, cakeId);
                 }}
                 onCancel={() => setShowSaveToAccountsDialog(false)}
             />

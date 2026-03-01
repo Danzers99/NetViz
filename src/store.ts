@@ -105,7 +105,7 @@ interface AppState {
 
     // Accounts (Cloud Persistence)
     isSavingToAccounts: boolean;
-    saveToAccounts: () => Promise<void>;
+    saveToAccounts: (name: string, cakeId: string) => Promise<void>;
     loadFromAccounts: (cakeId: string) => Promise<void>;
 
     // Camera
@@ -735,21 +735,16 @@ export const useAppStore = create<AppState>((set, get) => ({
     }),
 
     isSavingToAccounts: false,
-    saveToAccounts: async () => {
-        const state = get();
-        const cakeId = state.projectInfo.cakeId;
-        if (!cakeId) {
-            set({ notification: { message: 'No CAKE ID set. Please set a CAKE ID before saving to Accounts.', type: 'error' } });
-            return;
-        }
-        set({ isSavingToAccounts: true });
+    saveToAccounts: async (name: string, cakeId: string) => {
+        // Update projectInfo with user-edited name and cakeId before exporting
+        set({ isSavingToAccounts: true, projectInfo: { ...get().projectInfo, name, cakeId } });
         try {
-            const config = state.exportConfig();
-            await saveAccount(cakeId, config);
+            const config = get().exportConfig();
+            await saveAccount(cakeId, config, name);
             set({ notification: { message: `Saved to Accounts (CAKE ${cakeId})`, type: 'success' }, isSavingToAccounts: false });
         } catch (error) {
             console.error('Failed to save to accounts:', error);
-            set({ notification: { message: `Failed to save to Accounts: ${error instanceof Error ? error.message : 'Unknown error'}`, type: 'error' }, isSavingToAccounts: false });
+            set({ notification: { message: `Failed to save: ${error instanceof Error ? error.message : 'Unknown error'}`, type: 'error' }, isSavingToAccounts: false });
         }
     },
     loadFromAccounts: async (cakeId: string) => {

@@ -1,34 +1,44 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { CloudUpload, X, Check } from 'lucide-react';
 import { useAppStore } from '../store';
 
 interface SaveToAccountsDialogProps {
     isOpen: boolean;
-    onSave: () => void;
+    onSave: (name: string, cakeId: string) => void;
     onCancel: () => void;
 }
 
 export const SaveToAccountsDialog = ({ isOpen, onSave, onCancel }: SaveToAccountsDialogProps) => {
     const projectInfo = useAppStore((state) => state.projectInfo);
-    const setProjectInfo = useAppStore((state) => state.setProjectInfo);
     const isSaving = useAppStore((state) => state.isSavingToAccounts);
 
+    const [nameInput, setNameInput] = useState('');
     const [cakeIdInput, setCakeIdInput] = useState('');
+    const [nameError, setNameError] = useState('');
+
+    // Sync from store when dialog opens
+    useEffect(() => {
+        if (isOpen) {
+            setNameInput(projectInfo.name || '');
+            setCakeIdInput(projectInfo.cakeId || '');
+            setNameError('');
+        }
+    }, [isOpen, projectInfo.name, projectInfo.cakeId]);
 
     if (!isOpen) return null;
 
-    const hasCakeId = !!projectInfo.cakeId;
-    const effectiveCakeId = hasCakeId ? projectInfo.cakeId : cakeIdInput.trim();
-    const canSave = !!effectiveCakeId && !isSaving;
+    const trimmedName = nameInput.trim();
+    const trimmedCakeId = cakeIdInput.trim();
+    const canSave = trimmedName.length >= 2 && trimmedCakeId.length > 0 && !isSaving;
 
     const handleSubmit = (e: React.FormEvent) => {
         e.preventDefault();
-        if (!canSave) return;
-
-        if (!hasCakeId) {
-            setProjectInfo({ cakeId: cakeIdInput.trim() });
+        if (trimmedName.length < 2) {
+            setNameError('Account name must be at least 2 characters');
+            return;
         }
-        onSave();
+        if (!trimmedCakeId) return;
+        onSave(trimmedName, trimmedCakeId);
     };
 
     return (
@@ -46,31 +56,30 @@ export const SaveToAccountsDialog = ({ isOpen, onSave, onCancel }: SaveToAccount
                 </div>
 
                 <form onSubmit={handleSubmit} className="p-6 space-y-5">
-                    {/* Location Name (read-only) */}
+                    {/* Account Name (editable) */}
                     <div className="space-y-1">
-                        <label className="text-sm font-medium text-slate-700 dark:text-slate-300">Location Name</label>
-                        <div className="px-4 py-2.5 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-lg text-sm text-slate-800 dark:text-slate-200">
-                            {projectInfo.name || 'Untitled Location'}
-                        </div>
+                        <label className="text-sm font-medium text-slate-700 dark:text-slate-300">Account Name</label>
+                        <input
+                            type="text"
+                            value={nameInput}
+                            onChange={(e) => { setNameInput(e.target.value); setNameError(''); }}
+                            placeholder="e.g. Taco Shop - Plant City"
+                            className={`w-full px-4 py-2.5 rounded-lg border bg-slate-50 dark:bg-slate-900 text-slate-900 dark:text-slate-100 focus:ring-2 focus:ring-orange-500 focus:border-transparent outline-none transition-all text-sm ${nameError ? 'border-red-400' : 'border-slate-300 dark:border-slate-600'}`}
+                            autoFocus
+                        />
+                        {nameError && <p className="text-xs text-red-500">{nameError}</p>}
                     </div>
 
-                    {/* CAKE ID */}
+                    {/* CAKE ID (editable) */}
                     <div className="space-y-1">
                         <label className="text-sm font-medium text-slate-700 dark:text-slate-300">CAKE ID</label>
-                        {hasCakeId ? (
-                            <div className="px-4 py-2.5 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-lg text-sm text-slate-800 dark:text-slate-200 font-mono">
-                                {projectInfo.cakeId}
-                            </div>
-                        ) : (
-                            <input
-                                type="text"
-                                value={cakeIdInput}
-                                onChange={(e) => setCakeIdInput(e.target.value)}
-                                placeholder="Enter CAKE ID for this location"
-                                className="w-full px-4 py-2.5 rounded-lg border border-slate-300 dark:border-slate-600 bg-slate-50 dark:bg-slate-900 text-slate-900 dark:text-slate-100 focus:ring-2 focus:ring-orange-500 focus:border-transparent outline-none transition-all text-sm"
-                                autoFocus
-                            />
-                        )}
+                        <input
+                            type="text"
+                            value={cakeIdInput}
+                            onChange={(e) => setCakeIdInput(e.target.value)}
+                            placeholder="Enter CAKE ID for this location"
+                            className="w-full px-4 py-2.5 rounded-lg border border-slate-300 dark:border-slate-600 bg-slate-50 dark:bg-slate-900 text-slate-900 dark:text-slate-100 focus:ring-2 focus:ring-orange-500 focus:border-transparent outline-none transition-all text-sm"
+                        />
                     </div>
 
                     {/* Actions */}
