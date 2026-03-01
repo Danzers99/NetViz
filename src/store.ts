@@ -7,6 +7,7 @@ import { findPathToModem, findNeighborLinks } from './utils/packetFlow';
 import type { ValidationError } from './validation';
 import type { Device, DeviceType, Port, Settings, DeviceAction, ConfigData, ProjectInfo, Room, RoomType, Revision } from './types';
 import { migrateConfig, validateAndSanitizeConfig, CURRENT_SCHEMA_VERSION, loadSettingsFromStorage, saveSettingsToStorage } from './utils/persistence';
+import { saveAccount, loadAccount } from './utils/accountsApi';
 
 interface AppState {
     step: 'wizard' | 'sandbox';
@@ -99,6 +100,13 @@ interface AppState {
     setHistoryOpen: (open: boolean) => void;
     isSettingsOpen: boolean;
     setSettingsOpen: (open: boolean) => void;
+    isAccountsOpen: boolean;
+    setAccountsOpen: (open: boolean) => void;
+
+    // Accounts (Cloud Persistence)
+    isSavingToAccounts: boolean;
+    saveToAccounts: () => Promise<void>;
+    loadFromAccounts: (cakeId: string) => Promise<void>;
 
     // Camera
     cameraResetTrigger: number;
@@ -707,21 +715,54 @@ export const useAppStore = create<AppState>((set, get) => ({
 
     setHistoryOpen: (open) => set({
         isHistoryOpen: open,
-        // If opening history, close properties and settings
-        ...(open ? { propertiesPanelDeviceId: null, isSettingsOpen: false } : {})
+        ...(open ? { propertiesPanelDeviceId: null, isSettingsOpen: false, isAccountsOpen: false } : {})
     }),
 
     setPropertiesPanelDeviceId: (id: string | null) => set({
         propertiesPanelDeviceId: id,
-        // If opening properties, close history and settings
-        ...(id ? { isHistoryOpen: false, isSettingsOpen: false } : {})
+        ...(id ? { isHistoryOpen: false, isSettingsOpen: false, isAccountsOpen: false } : {})
     }),
 
     setSettingsOpen: (open: boolean) => set({
         isSettingsOpen: open,
-        // If opening settings, close history and properties
-        ...(open ? { isHistoryOpen: false, propertiesPanelDeviceId: null } : {})
+        ...(open ? { isHistoryOpen: false, propertiesPanelDeviceId: null, isAccountsOpen: false } : {})
     }),
+
+    isAccountsOpen: false,
+    setAccountsOpen: (open: boolean) => set({
+        isAccountsOpen: open,
+        ...(open ? { isHistoryOpen: false, isSettingsOpen: false, propertiesPanelDeviceId: null } : {})
+    }),
+
+    isSavingToAccounts: false,
+    saveToAccounts: async () => {
+        const state = get();
+        const cakeId = state.projectInfo.cakeId;
+        if (!cakeId) {
+            set({ notification: { message: 'No CAKE ID set. Please set a CAKE ID before saving to Accounts.', type: 'error' } });
+            return;
+        }
+        set({ isSavingToAccounts: true });
+        try {
+            const config = state.exportConfig();
+            await saveAccount(cakeId, config);
+            set({ notification: { message: `Saved to Accounts (CAKE ${cakeId})`, type: 'success' }, isSavingToAccounts: false });
+        } catch (error) {
+            console.error('Failed to save to accounts:', error);
+            set({ notification: { message: `Failed to save to Accounts: ${error instanceof Error ? error.message : 'Unknown error'}`, type: 'error' }, isSavingToAccounts: false });
+        }
+    },
+    loadFromAccounts: async (cakeId: string) => {
+        try {
+            const { config } = await loadAccount(cakeId);
+            config.projectInfo = { ...config.projectInfo, cakeId };
+            get().importConfig(config);
+            set({ isAccountsOpen: false, notification: { message: `Loaded account map for CAKE ${cakeId}`, type: 'success' } });
+        } catch (error) {
+            console.error('Failed to load from accounts:', error);
+            set({ notification: { message: `Failed to load account: ${error instanceof Error ? error.message : 'Unknown error'}`, type: 'error' } });
+        }
+    },
 
     // Packet Flow Actions
     setPacketFlowMode: (mode) => set((state) => {

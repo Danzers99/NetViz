@@ -128,6 +128,7 @@ export interface Revision {
 
 export interface ProjectInfo {
     name: string;
+    cakeId?: string;
     createdAt?: string;
     updatedAt?: string;
 }

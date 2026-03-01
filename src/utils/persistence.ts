@@ -44,7 +44,7 @@ export const saveSettingsToStorage = (settings: Settings) => {
     }
 };
 
-export const CURRENT_SCHEMA_VERSION = 4; // Incremented for Revision History
+export const CURRENT_SCHEMA_VERSION = 5; // Incremented for cakeId support
 
 // Internal interface for legacy settings if needed, or just allow 'any'
 
@@ -76,9 +76,18 @@ export const migrateConfig = (data: LegacyConfigData): ConfigData => {
     if (migrated.schemaVersion < 4) {
         migrated = migrateV3toV4(migrated);
     }
+    if (migrated.schemaVersion < 5) {
+        migrated = migrateV4toV5(migrated);
+    }
 
     // Ensure final structure matches current types
     return migrated as ConfigData;
+};
+
+const migrateV4toV5 = (data: any): any => {
+    console.log('Migrating save from v4 to v5 (cakeId support)...');
+    data.schemaVersion = 5;
+    return data;
 };
 
 const migrateV3toV4 = (data: any): any => {
