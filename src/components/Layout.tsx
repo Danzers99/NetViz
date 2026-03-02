@@ -1,6 +1,6 @@
 import { useState, useRef, type ReactNode } from 'react';
 import { useAppStore } from '../store';
-import { LayoutGrid, Settings, HelpCircle, RotateCcw, Save as SaveIcon, FolderOpen, History, Network, Database } from 'lucide-react';
+import { LayoutGrid, Settings, HelpCircle, RotateCcw, Save as SaveIcon, FolderOpen, History, Database } from 'lucide-react';
 import { NetworkDiagram } from './NetworkDiagram';
 import { Alerts } from './Alerts';
 import { SettingsPanel } from './SettingsPanel';
@@ -36,9 +36,11 @@ export const Layout = ({ children }: { children: ReactNode }) => {
     const activeView = useAppStore((state) => state.activeView);
     const setActiveView = useAppStore((state) => state.setActiveView);
 
+    const showDiagram = useAppStore((state) => state.showDiagram);
+    const setShowDiagram = useAppStore((state) => state.setShowDiagram);
+
     const [showSaveDialog, setShowSaveDialog] = useState(false);
     const [pendingAutoSummary, setPendingAutoSummary] = useState('');
-    const [showDiagram, setShowDiagram] = useState(false);
     const [showSupportCodeModal, setShowSupportCodeModal] = useState(false);
 
     // Hidden unlock: Shift+click logo 5 times
@@ -293,14 +295,6 @@ export const Layout = ({ children }: { children: ReactNode }) => {
                             >
                                 <FolderOpen size={20} />
                                 <span className="hidden md:block">Load</span>
-                            </button>
-                            <button
-                                onClick={() => setShowDiagram(true)}
-                                className="w-full flex items-center gap-3 px-3 py-2 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-700 transition-colors font-medium"
-                                title="View 2D network diagram"
-                            >
-                                <Network size={20} />
-                                <span className="hidden md:block">View Diagram</span>
                             </button>
                             <button
                                 onClick={() => {

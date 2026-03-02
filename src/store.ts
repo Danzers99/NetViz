@@ -110,6 +110,10 @@ interface AppState {
     activeView: 'visualizer' | 'accounts';
     setActiveView: (view: 'visualizer' | 'accounts') => void;
 
+    // 2D Diagram overlay
+    showDiagram: boolean;
+    setShowDiagram: (show: boolean) => void;
+
     // Accounts (Cloud Persistence)
     isSavingToAccounts: boolean;
     saveToAccountsFromDialog: (name: string, cakeId: string) => Promise<void>;
@@ -748,6 +752,8 @@ export const useAppStore = create<AppState>((set, get) => ({
 
     // View Routing
     activeView: 'visualizer' as const,
+    showDiagram: false,
+    setShowDiagram: (show) => set({ showDiagram: show }),
     setActiveView: (view) => set({
         activeView: view,
         ...(view === 'accounts' ? {
@@ -820,6 +826,7 @@ export const useAppStore = create<AppState>((set, get) => ({
     reset: () => set({
         step: 'wizard',
         activeView: 'visualizer',
+        showDiagram: false,
         devices: [],
         rooms: [],
         revisions: [],

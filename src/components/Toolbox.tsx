@@ -20,7 +20,8 @@ import {
     Utensils,
     Briefcase,
     Wine,
-    Warehouse
+    Warehouse,
+    Layers
 } from 'lucide-react';
 
 const DEVICE_CATEGORIES = {
@@ -63,6 +64,8 @@ export const Toolbox = () => {
     const layoutMode = useAppStore((state) => state.layoutMode);
     const toggleLayoutMode = useAppStore((state) => state.toggleLayoutMode);
     const addRoom = useAppStore((state) => state.addRoom);
+    const showDiagram = useAppStore((state) => state.showDiagram);
+    const setShowDiagram = useAppStore((state) => state.setShowDiagram);
 
     const handleAddDevice = (type: DeviceType) => {
         addDevice(type);
@@ -76,10 +79,22 @@ export const Toolbox = () => {
         return (
             <div className="absolute bottom-4 left-1/2 -translate-x-1/2 flex items-center gap-2 z-10 animate-in fade-in slide-in-from-bottom-4">
                 <button
+                    onClick={() => setShowDiagram(!showDiagram)}
+                    className={`px-4 py-3 rounded-full shadow-lg flex items-center gap-2 font-semibold transition-all hover:scale-105 ${showDiagram
+                        ? 'bg-sky-600 hover:bg-sky-700 text-white'
+                        : 'bg-white hover:bg-slate-50 text-slate-700 dark:bg-slate-700 dark:hover:bg-slate-600 dark:text-slate-200'
+                        }`}
+                    title={showDiagram ? 'Switch to 3D Visualizer' : 'Switch to 2D Diagram'}
+                >
+                    <Layers size={20} />
+                    {showDiagram ? 'Back to 3D' : '2D Diagram'}
+                </button>
+
+                <button
                     onClick={toggleLayoutMode}
                     className={`px-4 py-3 rounded-full shadow-lg flex items-center gap-2 font-semibold transition-all hover:scale-105 ${layoutMode
                         ? 'bg-indigo-600 hover:bg-indigo-700 text-white'
-                        : 'bg-white hover:bg-slate-50 text-slate-700'
+                        : 'bg-white hover:bg-slate-50 text-slate-700 dark:bg-slate-700 dark:hover:bg-slate-600 dark:text-slate-200'
                         }`}
                 >
                     <Grid size={20} />
