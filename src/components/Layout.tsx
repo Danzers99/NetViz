@@ -3,6 +3,7 @@ import { useAppStore } from '../store';
 import { LayoutGrid, Settings, HelpCircle, RotateCcw, Save as SaveIcon, FolderOpen, History, Database } from 'lucide-react';
 import { NetworkDiagram } from './NetworkDiagram';
 import { RackView } from './RackView';
+import { HelpPanel } from './HelpPanel';
 import { Alerts } from './Alerts';
 import { SettingsPanel } from './SettingsPanel';
 import { DeviceProperties } from './DeviceProperties';
@@ -45,6 +46,7 @@ export const Layout = ({ children }: { children: ReactNode }) => {
     const [showSaveDialog, setShowSaveDialog] = useState(false);
     const [pendingAutoSummary, setPendingAutoSummary] = useState('');
     const [showSupportCodeModal, setShowSupportCodeModal] = useState(false);
+    const [showHelp, setShowHelp] = useState(false);
 
     // Hidden unlock: Shift+click logo 5 times
     const [shiftClickCount, setShiftClickCount] = useState(0);
@@ -213,6 +215,7 @@ export const Layout = ({ children }: { children: ReactNode }) => {
             {isHistoryOpen && step === 'sandbox' && <HistoryPanel onClose={() => setHistoryOpen(false)} />}
             {showDiagram && <NetworkDiagram onClose={() => setShowDiagram(false)} />}
             {rackViewDeviceId && <RackView deviceId={rackViewDeviceId} onClose={() => setRackViewDeviceId(null)} />}
+            {showHelp && <HelpPanel onClose={() => setShowHelp(false)} />}
 
             <DeviceProperties />
 
@@ -316,15 +319,13 @@ export const Layout = ({ children }: { children: ReactNode }) => {
                     {isSupportMode && step === 'sandbox' && (
                         <CloudSyncIndicator />
                     )}
-                    <a
-                        href="https://app.getguru.com/dashboard"
-                        target="_blank"
-                        rel="noopener noreferrer"
+                    <button
+                        onClick={() => setShowHelp(true)}
                         className="w-full flex items-center gap-3 px-3 py-2 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-700 transition-colors font-medium text-slate-600 dark:text-slate-400"
                     >
                         <HelpCircle size={20} />
                         <span className="hidden md:block">Help</span>
-                    </a>
+                    </button>
                 </div>
             </div>
 
