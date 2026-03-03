@@ -134,6 +134,14 @@ export const RACK_VIEW_CONFIGS: Partial<Record<DeviceType, RackViewCameraConfig>
         viewLabel: 'Base / Rear',
     },
 
+    // ── Kiosk ─────────────────────────────────────────────────
+    'kiosk': {
+        cameraPosition: [0, 0.1, -1.0],
+        cameraTarget: [0, 0.05, -0.18],
+        portFace: 'back',
+        viewLabel: 'Base / Rear',
+    },
+
     // ── Printers ─────────────────────────────────────────────
     'printer': {
         cameraPosition: [0, 0.15, -1.4],
@@ -148,6 +156,12 @@ export const RACK_VIEW_CONFIGS: Partial<Record<DeviceType, RackViewCameraConfig>
         viewLabel: 'Rear Panel',
     },
     'epson-impact': {
+        cameraPosition: [0, 0.15, -1.4],
+        cameraTarget: [0, 0.1, -0.32],
+        portFace: 'back',
+        viewLabel: 'Rear Panel',
+    },
+    'epson-label': {
         cameraPosition: [0, 0.15, -1.4],
         cameraTarget: [0, 0.1, -0.32],
         portFace: 'back',

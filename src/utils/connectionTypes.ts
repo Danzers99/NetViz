@@ -69,7 +69,7 @@ export interface ValidationIssue {
  */
 export interface SimpleDevice {
     id: string;                    // Unique ID for this entry
-    role: 'router' | 'switch' | 'pos' | 'printer' | 'ap' | 'kds';
+    role: 'router' | 'switch' | 'pos' | 'printer' | 'ap' | 'kds' | 'kiosk';
     type: DeviceType;              // Specific device model
     name: string;                  // Display name (auto-generated if blank)
     room: RoomType;               // Room assignment

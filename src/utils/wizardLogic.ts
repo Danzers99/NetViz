@@ -10,6 +10,7 @@ export interface WizardState {
     printers: {
         'epson-thermal': number;
         'epson-impact': number;
+        'epson-label': number;
     };
     wireless: {
         'orderpad': number;
@@ -17,6 +18,7 @@ export interface WizardState {
     };
     kds: {
         'elo-kds': number;
+        'kiosk': number;
     };
     projectInfo: {
         name: string;
@@ -33,6 +35,7 @@ export const initialWizardState: WizardState = {
     printers: {
         'epson-thermal': 0,
         'epson-impact': 0,
+        'epson-label': 0,
     },
     wireless: {
         'orderpad': 0,
@@ -40,6 +43,7 @@ export const initialWizardState: WizardState = {
     },
     kds: {
         'elo-kds': 0,
+        'kiosk': 0,
     },
     projectInfo: {
         name: ''
@@ -165,7 +169,9 @@ export const buildSandboxConfigFromWizard = (wizardState: WizardState): Record<D
         'printer': 0,
         'epson-thermal': wizardState.printers['epson-thermal'],
         'epson-impact': wizardState.printers['epson-impact'],
+        'epson-label': wizardState.printers['epson-label'],
         'kds': 0,
+        'kiosk': wizardState.kds['kiosk'],
         'elo-kds': wizardState.kds['elo-kds'],
         'orderpad': wizardState.wireless.orderpad,
         'cakepop': wizardState.wireless.cakepop,

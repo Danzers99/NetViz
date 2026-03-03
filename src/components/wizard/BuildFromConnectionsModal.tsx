@@ -54,6 +54,13 @@ const DEVICE_ROLES = {
         defaultRoom: 'kitchen' as RoomType,
         color: 'text-cyan-500',
     },
+    kiosk: {
+        label: 'Kiosk',
+        icon: Monitor,
+        defaultType: 'kiosk' as DeviceType,
+        defaultRoom: 'dining' as RoomType,
+        color: 'text-teal-500',
+    },
     router: {
         label: 'Router',
         icon: Router,

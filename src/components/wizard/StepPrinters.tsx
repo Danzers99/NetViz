@@ -18,7 +18,7 @@ export const StepPrinters = ({ data, updateData, onBack, onNext }: StepPrintersP
             onBack={onBack}
             onNext={onNext}
         >
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-6 max-w-2xl mx-auto">
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-6 max-w-3xl mx-auto">
                 <DeviceQuantityInput
                     id="thermal"
                     label="Epson Thermal (Receipt)"
@@ -32,6 +32,13 @@ export const StepPrinters = ({ data, updateData, onBack, onNext }: StepPrintersP
                     icon={Printer}
                     value={data['epson-impact']}
                     onChange={(val) => updateData({ 'epson-impact': val })}
+                />
+                <DeviceQuantityInput
+                    id="label"
+                    label="Epson Label"
+                    icon={Printer}
+                    value={data['epson-label']}
+                    onChange={(val) => updateData({ 'epson-label': val })}
                 />
             </div>
         </WizardStepLayout>

@@ -74,12 +74,14 @@ const DeviceModel = ({ device }: { device: Device }) => {
         case 'v3-pos':
         case 'v4-pos':
         case 'elo-kds':
+        case 'kiosk':
             return <EloKDSModel status={status} connectionState={device.connectionState} />;
         case 'kds':
             return <POSModel status={status} connectionState={device.connectionState} />;
         case 'printer':
         case 'epson-thermal':
         case 'epson-impact':
+        case 'epson-label':
             return <PrinterModel status={status} connectionState={device.connectionState} />;
         case 'cakepop':
             return <CakePOPModel status={status} connectionState={device.connectionState} />;

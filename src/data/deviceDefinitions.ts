@@ -239,9 +239,31 @@ export const DEVICE_DEFINITIONS: Record<DeviceType, DeviceDefinition> = {
         powerModel: { requiresPower: true, powerSource: 'outlet' },
         capabilities: { isEndpoint: true }
     },
+    'epson-label': {
+        type: 'epson-label',
+        displayName: 'Epson Label',
+        category: 'printer',
+        ports: [
+            { id: 'eth', label: 'ETH', role: 'access' },
+            { id: 'pwr', label: 'Power', role: 'power_input' }
+        ],
+        powerModel: { requiresPower: true, powerSource: 'outlet' },
+        capabilities: { isEndpoint: true }
+    },
     'kds': {
         type: 'kds',
         displayName: 'KDS',
+        category: 'pos',
+        ports: [
+            { id: 'eth', label: 'ETH', role: 'access' },
+            { id: 'pwr', label: 'Power', role: 'power_input' }
+        ],
+        powerModel: { requiresPower: true, powerSource: 'outlet' },
+        capabilities: { isEndpoint: true }
+    },
+    'kiosk': {
+        type: 'kiosk',
+        displayName: 'Kiosk',
         category: 'pos',
         ports: [
             { id: 'eth', label: 'ETH', role: 'access' },

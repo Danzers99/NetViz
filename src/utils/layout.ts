@@ -120,6 +120,7 @@ export const getPortPosition = (device: Device, port: Port, index: number): [num
         case 'v3-pos':
         case 'v4-pos':
         case 'elo-kds':
+        case 'kiosk':
             // EloKDSModel base: pos [0, 0.05, 0], size [0.5, 0.1, 0.4].
             // Back face Z = -0.2. Port mesh depth=0.05, center at Z=-0.18
             // keeps port slightly proud of surface (avoids Z-fighting).
@@ -137,6 +138,7 @@ export const getPortPosition = (device: Device, port: Port, index: number): [num
         case 'printer':
         case 'epson-thermal':
         case 'epson-impact':
+        case 'epson-label':
             // Printer Model: Cube [0.6, 0.6, 0.6]. Center [0, 0.3, 0].
             // Back face Z = -0.3.
             if (port.role === 'power_input') return [0.1, 0.1, -0.32];
