@@ -2,6 +2,7 @@ import { useState, useRef, type ReactNode } from 'react';
 import { useAppStore } from '../store';
 import { LayoutGrid, Settings, HelpCircle, RotateCcw, Save as SaveIcon, FolderOpen, History, Database } from 'lucide-react';
 import { NetworkDiagram } from './NetworkDiagram';
+import { RackView } from './RackView';
 import { Alerts } from './Alerts';
 import { SettingsPanel } from './SettingsPanel';
 import { DeviceProperties } from './DeviceProperties';
@@ -38,6 +39,8 @@ export const Layout = ({ children }: { children: ReactNode }) => {
 
     const showDiagram = useAppStore((state) => state.showDiagram);
     const setShowDiagram = useAppStore((state) => state.setShowDiagram);
+    const rackViewDeviceId = useAppStore((state) => state.rackViewDeviceId);
+    const setRackViewDeviceId = useAppStore((state) => state.setRackViewDeviceId);
 
     const [showSaveDialog, setShowSaveDialog] = useState(false);
     const [pendingAutoSummary, setPendingAutoSummary] = useState('');
@@ -209,6 +212,7 @@ export const Layout = ({ children }: { children: ReactNode }) => {
             {isSettingsOpen && <SettingsPanel onClose={() => setSettingsOpen(false)} />}
             {isHistoryOpen && step === 'sandbox' && <HistoryPanel onClose={() => setHistoryOpen(false)} />}
             {showDiagram && <NetworkDiagram onClose={() => setShowDiagram(false)} />}
+            {rackViewDeviceId && <RackView deviceId={rackViewDeviceId} onClose={() => setRackViewDeviceId(null)} />}
 
             <DeviceProperties />
 

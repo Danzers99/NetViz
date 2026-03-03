@@ -316,43 +316,44 @@ function layoutDevices(devices: Device[], rooms: Room[]): Device[] {
 
         // Combine infrastructure and network devices
         const infraDevices = [...modems, ...routers, ...switches, ...others];
+        const rowSpacing = 3;
+        let currentZ = roomTop + 1;
 
-        // Layout infrastructure row at top of room
+        // Layout outlets row at back of room (away from camera)
+        if (outlets.length > 0) {
+            const spacing = Math.max(2.5, availableWidth / Math.max(outlets.length, 1));
+            outlets.forEach((outlet, i) => {
+                const x = roomCenterX + (i - (outlets.length - 1) / 2) * Math.min(spacing, 2);
+                layoutedDevices.push({
+                    ...outlet,
+                    position: [x, 0, currentZ]
+                });
+            });
+            currentZ += rowSpacing;
+        }
+
+        // Layout infrastructure row (middle)
         if (infraDevices.length > 0) {
-            const rowZ = roomTop + 1;
             const spacing = Math.max(2.5, availableWidth / Math.max(infraDevices.length, 1));
             infraDevices.forEach((device, i) => {
                 const x = roomCenterX + (i - (infraDevices.length - 1) / 2) * Math.min(spacing, 3);
                 layoutedDevices.push({
                     ...device,
-                    position: [x, 0, rowZ]
+                    position: [x, 0, currentZ]
                 });
             });
+            currentZ += rowSpacing;
         }
 
-        // Layout endpoint row at bottom of room
+        // Layout endpoint row at front of room (toward camera)
         if (endpoints.length > 0) {
-            const rowZ = roomBottom - 1;
+            const endpointZ = Math.max(currentZ, roomBottom - 1);
             const spacing = Math.max(2.5, availableWidth / Math.max(endpoints.length, 1));
             endpoints.forEach((device, i) => {
                 const x = roomCenterX + (i - (endpoints.length - 1) / 2) * Math.min(spacing, 3);
                 layoutedDevices.push({
                     ...device,
-                    position: [x, 0, rowZ]
-                });
-            });
-        }
-
-        // Layout outlets on right side of room (inside bounds)
-        if (outlets.length > 0) {
-            const outletX = roomRight - 1;
-            const centerZ = (roomTop + roomBottom) / 2;
-            const spacing = Math.min(2, availableHeight / Math.max(outlets.length + 1, 2));
-            outlets.forEach((outlet, i) => {
-                const offsetZ = (i - (outlets.length - 1) / 2) * spacing;
-                layoutedDevices.push({
-                    ...outlet,
-                    position: [outletX, 0, centerZ + offsetZ]
+                    position: [x, 0, endpointZ]
                 });
             });
         }

@@ -518,12 +518,28 @@ function layoutDevicesInRooms(devices: Device[], rooms: Room[]): Device[] {
                 !caps?.isOutlet;
         });
 
-        // Layout rows
+        // Layout rows back-to-front: outlets (back) → infrastructure → endpoints (front)
         const infraDevices = [...modems, ...routers, ...switches, ...others];
         const rowSpacing = 3;
-
-        // Infrastructure row (top)
         let currentZ = top + 1;
+
+        // Outlets row (back of room — away from camera)
+        if (outlets.length > 0) {
+            const spacing = Math.min(2, (right - left) / Math.max(outlets.length, 1));
+            outlets.forEach((device, i) => {
+                const x = clamp(
+                    centerX + (i - (outlets.length - 1) / 2) * spacing,
+                    left, right
+                );
+                result.push({
+                    ...device,
+                    position: [x, 0, currentZ],
+                });
+            });
+            currentZ += rowSpacing;
+        }
+
+        // Infrastructure row (middle)
         if (infraDevices.length > 0) {
             const spacing = Math.min(3, (right - left) / Math.max(infraDevices.length, 1));
             infraDevices.forEach((device, i) => {
@@ -539,9 +555,9 @@ function layoutDevicesInRooms(devices: Device[], rooms: Room[]): Device[] {
             currentZ += rowSpacing;
         }
 
-        // Endpoints row (center-bottom)
+        // Endpoints row (front of room — toward camera)
         if (endpoints.length > 0) {
-            currentZ = (top + bottom) / 2;
+            const endpointZ = Math.max(currentZ, bottom - 1);
             const spacing = Math.min(3, (right - left) / Math.max(endpoints.length, 1));
             endpoints.forEach((device, i) => {
                 const x = clamp(
@@ -550,19 +566,7 @@ function layoutDevicesInRooms(devices: Device[], rooms: Room[]): Device[] {
                 );
                 result.push({
                     ...device,
-                    position: [x, 0, currentZ],
-                });
-            });
-        }
-
-        // Outlets row (bottom right)
-        if (outlets.length > 0) {
-            const outletX = right - 1;
-            const outletZ = bottom - 1;
-            outlets.forEach((device, i) => {
-                result.push({
-                    ...device,
-                    position: [clamp(outletX - i * 2, left, right), 0, outletZ],
+                    position: [x, 0, endpointZ],
                 });
             });
         }

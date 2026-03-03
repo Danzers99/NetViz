@@ -26,6 +26,7 @@ export const useDraggable = ({ onDragStart, onDragEnd, onDrag, snap = 0.5, disab
 
     const handlePointerDown = (e: ThreeEvent<PointerEvent>) => {
         if (disabled) return;
+        if (e.button !== 0) return; // Only left-click initiates drag (prevents pointer capture on right-click)
         e.stopPropagation();
 
         const point = new THREE.Vector3();

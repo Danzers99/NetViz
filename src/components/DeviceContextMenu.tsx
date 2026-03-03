@@ -10,7 +10,8 @@ import { useState } from 'react';
 import { useAppStore } from '../store';
 import type { Device } from '../types';
 import { isWifiCapable } from '../utils/wifi';
-import { Trash2, Wifi, Settings, ArrowLeft, Save, Route } from 'lucide-react';
+import { Trash2, Wifi, Settings, ArrowLeft, Save, Route, Box } from 'lucide-react';
+import { isRackViewSupported } from '../data/rackViewConfig';
 
 interface DeviceContextMenuProps {
     device: Device;
@@ -172,6 +173,7 @@ export const DeviceContextMenu = ({ device, onClose, context: _context }: Device
     const removeDevice = useAppStore((state) => state.removeDevice);
     const setPropertiesPanelDeviceId = useAppStore((state) => state.setPropertiesPanelDeviceId);
     const traceToInternet = useAppStore((state) => state.traceToInternet);
+    const setRackViewDeviceId = useAppStore((state) => state.setRackViewDeviceId);
 
     const [view, setView] = useState<MenuState>('main');
 
@@ -219,6 +221,7 @@ export const DeviceContextMenu = ({ device, onClose, context: _context }: Device
 
     const hasDataPorts = device.ports.some(p => !['power_input', 'power_source'].includes(p.role));
     const showTrace = hasDataPorts && device.type !== 'isp-modem';
+    const showRackView = isRackViewSupported(device.type);
 
     return (
         <div className="bg-white dark:bg-slate-800 text-slate-800 dark:text-white border border-slate-200 dark:border-slate-600 rounded shadow-xl flex flex-col min-w-[140px] overflow-hidden text-sm">
@@ -236,6 +239,19 @@ export const DeviceContextMenu = ({ device, onClose, context: _context }: Device
                 <Settings size={14} />
                 Properties
             </button>
+
+            {showRackView && (
+                <button
+                    onClick={() => {
+                        setRackViewDeviceId(device.id);
+                        onClose();
+                    }}
+                    className="px-3 py-2 text-left hover:bg-slate-100 dark:hover:bg-slate-700 transition-colors flex items-center gap-2 text-slate-700 dark:text-slate-200"
+                >
+                    <Box size={14} />
+                    Rack View
+                </button>
+            )}
 
             {showTrace && (
                 <button

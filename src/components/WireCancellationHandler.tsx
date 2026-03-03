@@ -16,12 +16,14 @@ export const WireCancellationHandler = () => {
 
         const handlePointerDown = (e: PointerEvent) => {
             if (!selectedPortId) return;
+            if (e.button !== 0) return; // Only left-click cancels selection
             isPointerDown.current = true;
             startPos.current = { x: e.clientX, y: e.clientY };
         };
 
         const handlePointerUp = (e: PointerEvent) => {
             if (!selectedPortId || !isPointerDown.current) return;
+            if (e.button !== 0) return; // Only left-click cancels selection
             isPointerDown.current = false;
 
             // Calculate distance moved

@@ -114,6 +114,10 @@ interface AppState {
     showDiagram: boolean;
     setShowDiagram: (show: boolean) => void;
 
+    // Rack View (Port Close-Up Overlay)
+    rackViewDeviceId: string | null;
+    setRackViewDeviceId: (deviceId: string | null) => void;
+
     // Accounts (Cloud Persistence)
     isSavingToAccounts: boolean;
     saveToAccountsFromDialog: (name: string, cakeId: string) => Promise<void>;
@@ -436,7 +440,12 @@ export const useAppStore = create<AppState>((set, get) => ({
             }
 
             if (!portA || !portB || !deviceA || !deviceB) {
-                return { devices };
+                return { devices, notification: { message: 'Could not find ports to connect.', type: 'error' as const } };
+            }
+
+            // Same-device self-loop guard
+            if (portIdA === portIdB) {
+                return { devices, notification: { message: 'Cannot connect a port to itself.', type: 'error' as const } };
             }
 
             // Connection Validation Logic
@@ -464,6 +473,10 @@ export const useAppStore = create<AppState>((set, get) => ({
                 return { devices }; // Return early, do not connect
             }
 
+            // Track whether this is a reconnection (replacing existing cables)
+            const wasAConnected = !!portA.connectedTo;
+            const wasBConnected = !!portB.connectedTo;
+
             // Disconnect existing connections
             if (portA.connectedTo) {
                 for (const device of devices) {
@@ -485,7 +498,7 @@ export const useAppStore = create<AppState>((set, get) => ({
             // Create new connection
             portA.connectedTo = portIdB;
             // Link status will be handled by updateLinkStatuses
-            // portA.linkStatus = 'up'; 
+            // portA.linkStatus = 'up';
             portB.connectedTo = portIdA;
             // portB.linkStatus = 'up';
 
@@ -496,7 +509,11 @@ export const useAppStore = create<AppState>((set, get) => ({
             devices = updateConnectionStates(devices);
 
             const errors = validateNetwork(devices);
-            return { devices, selectedPortId: null, validationErrors: errors };
+            const isReconnection = wasAConnected || wasBConnected;
+            const successMsg = isReconnection
+                ? `Reconnected: ${deviceA!.name} ${portA.name} ↔ ${deviceB!.name} ${portB.name}`
+                : `Connected: ${deviceA!.name} ${portA.name} ↔ ${deviceB!.name} ${portB.name}`;
+            return { devices, selectedPortId: null, validationErrors: errors, notification: { message: successMsg, type: 'success' as const } };
         }),
     disconnectPort: (portId) =>
         set((state) => {
@@ -754,6 +771,8 @@ export const useAppStore = create<AppState>((set, get) => ({
     activeView: 'visualizer' as const,
     showDiagram: false,
     setShowDiagram: (show) => set({ showDiagram: show }),
+    rackViewDeviceId: null,
+    setRackViewDeviceId: (deviceId) => set({ rackViewDeviceId: deviceId }),
     setActiveView: (view) => set({
         activeView: view,
         ...(view === 'accounts' ? {
@@ -827,6 +846,7 @@ export const useAppStore = create<AppState>((set, get) => ({
         step: 'wizard',
         activeView: 'visualizer',
         showDiagram: false,
+        rackViewDeviceId: null,
         devices: [],
         rooms: [],
         revisions: [],

@@ -54,7 +54,6 @@ import { WifiCoverageOverlay } from './WifiCoverageOverlay';
 
 export const DeviceNode = ({ device }: { device: Device }) => {
     const setDraggingDevice = useAppStore((state) => state.setDraggingDevice);
-    const selectPort = useAppStore((state) => state.selectPort);
     const selectDevice = useAppStore((state) => state.selectDevice);
     const toggleSelection = useAppStore((state) => state.toggleSelection);
     const selectedDeviceIds = useAppStore((state) => state.selectedDeviceIds);
@@ -125,12 +124,13 @@ export const DeviceNode = ({ device }: { device: Device }) => {
                     if (e.shiftKey) {
                         toggleSelection(device.id);
                     } else {
-                        // If not shifting, select this one. 
+                        // If not shifting, select this one.
                         // Check if already selected? If dragging, we handled logic elsewhere.
                         // Standard click: select only this one.
                         selectDevice(device.id);
                     }
-                    selectPort(null);
+                    // Note: Port selection is NOT cleared here — only empty canvas clicks,
+                    // explicit "Clear" actions, or successful connections should clear it.
                 }}
                 onContextMenu={(e) => {
                     e.stopPropagation();

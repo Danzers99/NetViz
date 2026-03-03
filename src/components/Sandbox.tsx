@@ -61,9 +61,16 @@ export const Sandbox = () => {
 
     return (
         <div className="w-full h-full bg-slate-50 dark:bg-slate-900 relative transition-colors duration-300">
-            <Canvas camera={{ position: [0, 10, 10], fov: 50 }} shadows onPointerMissed={() => {
-                useAppStore.getState().clearSelection();
-                useAppStore.getState().selectPort(null);
+            <Canvas camera={{ position: [0, 10, 10], fov: 50 }} shadows onPointerMissed={(event) => {
+                // Only left-click clears selection (ignore right-click context menu events)
+                if (event && 'button' in event && (event as MouseEvent).button !== 0) return;
+                const state = useAppStore.getState();
+                state.clearSelection();
+                // Don't clear port selection if Rack View is open/opening —
+                // stray pointer events during overlay transitions must not disarm the armed port.
+                if (!state.rackViewDeviceId) {
+                    state.selectPort(null);
+                }
             }}>
                 <Suspense fallback={null}>
                     <ambientLight intensity={0.5} />
