@@ -292,7 +292,6 @@ function layoutDevices(devices: Device[], rooms: Room[]): Device[] {
 
         const roomCenterX = (roomLeft + roomRight) / 2;
         const availableWidth = roomRight - roomLeft;
-        const availableHeight = roomBottom - roomTop;
 
         // Get device definition helper
         const getDef = (d: Device) => getDeviceDefinition(d.type);
