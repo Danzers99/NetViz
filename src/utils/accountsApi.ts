@@ -45,11 +45,11 @@ export async function loadAccount(cakeId: string): Promise<{ cakeId: string; nam
     return res.json();
 }
 
-export async function saveAccount(cakeId: string, config: ConfigData, name?: string): Promise<void> {
+export async function saveAccount(cakeId: string, config: ConfigData, name?: string, lastEditedBy?: string): Promise<void> {
     const res = await fetch(`${API_BASE}/${encodeURIComponent(cakeId)}`, {
         method: 'PUT',
         headers: authHeaders(),
-        body: JSON.stringify({ config, name }),
+        body: JSON.stringify({ config, name, lastEditedBy }),
     });
     if (!res.ok) throw new Error(await parseApiError(res, 'Save failed'));
 }

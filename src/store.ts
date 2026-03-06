@@ -790,7 +790,11 @@ export const useAppStore = create<AppState>((set, get) => ({
         set({ isSavingToAccounts: true, projectInfo: { ...get().projectInfo, name, cakeId } });
         try {
             const config = get().exportConfig();
-            await saveAccount(cakeId, config, name);
+            // Derive author from latest revision (just committed) or current user settings
+            const revisions = get().revisions;
+            const latestRevision = revisions.length > 0 ? revisions[revisions.length - 1] : null;
+            const lastEditedBy = latestRevision?.author || get().settings.userName || 'Unknown';
+            await saveAccount(cakeId, config, name, lastEditedBy);
             set({
                 projectInfo: { ...get().projectInfo, lastCloudSyncAt: Date.now() },
                 notification: { message: `Synced to cloud (CAKE ${cakeId})`, type: 'success' },
