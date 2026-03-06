@@ -76,7 +76,11 @@ export const onRequestPut: PagesFunction<Env> = async (context) => {
         const name = body.name || config.projectInfo?.name || 'Untitled Location';
         const deviceCount = Array.isArray(config.devices) ? config.devices.length : 0;
         const lastEdited = new Date().toISOString();
-        const lastEditedBy = config.settings?.userName || 'Unknown';
+        // Author is sent as explicit save metadata from the frontend (body.lastEditedBy).
+        // Fallback chain: body field → latest revision author → legacy config.settings.userName → Unknown
+        const revisions = Array.isArray(config.revisions) ? config.revisions : [];
+        const latestRevisionAuthor = revisions.length > 0 ? revisions[revisions.length - 1]?.author : null;
+        const lastEditedBy = body.lastEditedBy || latestRevisionAuthor || config.settings?.userName || 'Unknown';
         const configJson = JSON.stringify(config);
 
         await db
