@@ -68,15 +68,14 @@ export const Layout = ({ children }: { children: ReactNode }) => {
         }
     };
 
-    const executeSave = (manualNote: string) => {
-        // Get fresh state to ensure we have the latest userName after the prompt
+    // Commit a revision to the store (always happens on save)
+    const commitRevision = (manualNote: string) => {
         const currentSettings = useAppStore.getState().settings;
-        // Changes are captured in pendingAutoSummary state at time of click
 
         const stats = {
             deviceCount: devices.length,
             roomCount: rooms.length,
-            cableCount: devices.reduce((acc, d) => acc + d.ports.filter(p => p.connectedTo).length, 0) / 2 // Divide by 2 as cables are bidirectional
+            cableCount: devices.reduce((acc, d) => acc + d.ports.filter(p => p.connectedTo).length, 0) / 2
         };
 
         const revision: Revision = {
@@ -84,14 +83,15 @@ export const Layout = ({ children }: { children: ReactNode }) => {
             timestamp: Date.now(),
             author: currentSettings.userName || 'Unknown User',
             summary: pendingAutoSummary,
-            manualNote: manualNote, // Include the note
+            manualNote: manualNote,
             stats
         };
 
-        // 2. Commit Revision to Store
         addRevision(revision);
+    };
 
-        // 3. Export (now includes the new revision)
+    // Download a local JSON file copy
+    const downloadLocalCopy = () => {
         const config = exportConfig();
         const projectName = config.projectInfo.name || "Untitled_Location";
         const sanitizedName = projectName.replace(/[^a-zA-Z0-9-_]/g, '_').substring(0, 40);
@@ -195,12 +195,29 @@ export const Layout = ({ children }: { children: ReactNode }) => {
             <SaveDialog
                 isOpen={showSaveDialog}
                 autoSummary={pendingAutoSummary}
-                onSave={(note, cloudSync) => {
+                onSave={(note, options) => {
                     setShowSaveDialog(false);
                     setTimeout(() => {
-                        executeSave(note);
-                        if (cloudSync) {
-                            useAppStore.getState().saveToAccountsFromDialog(cloudSync.name, cloudSync.cakeId);
+                        // 1. Always commit the revision to history
+                        commitRevision(note);
+
+                        // 2. Cloud sync (if requested)
+                        if (options?.cloudSync) {
+                            useAppStore.getState().saveToAccountsFromDialog(
+                                options.cloudSync.name,
+                                options.cloudSync.cakeId
+                            );
+                        }
+
+                        // 3. Local file download (if requested)
+                        if (options?.downloadLocal) {
+                            downloadLocalCopy();
+                        }
+
+                        // Update baseline even without download (revision committed = baseline updated)
+                        if (!options?.downloadLocal) {
+                            const config = exportConfig();
+                            lastSavedDevicesRef.current = JSON.stringify(config.devices);
                         }
                     }, 0);
                 }}

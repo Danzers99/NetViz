@@ -283,7 +283,8 @@ export const useAppStore = create<AppState>((set, get) => ({
             }
             const updatedSettings = { ...state.settings, ...newSettings };
             saveSettingsToStorage(updatedSettings);
-            state.addSessionChange('Settings');
+            // Settings are UI preferences (dark mode, warnings, display toggles).
+            // They do NOT count as location/topology modifications.
             return { settings: updatedSettings };
         }),
     generateSandbox: () => {
@@ -998,11 +999,16 @@ export const useAppStore = create<AppState>((set, get) => ({
         }),
     exportConfig: () => {
         const { settings, deviceCounts, devices, rooms, projectInfo, revisions } = get();
+
+        // Strip user-local preferences from exported settings.
+        // These are per-user UI prefs, not shared location/topology data.
+        const { darkMode: _dm, userName: _un, hasSeenIntro: _hs, ...locationSettings } = settings;
+
         return {
             version: CURRENT_SCHEMA_VERSION, // Use schema version
             schemaVersion: CURRENT_SCHEMA_VERSION,
             timestamp: Date.now(),
-            settings,
+            settings: locationSettings as typeof settings,
             deviceCounts,
             devices,
             rooms, // Export Rooms
@@ -1036,6 +1042,7 @@ export const useAppStore = create<AppState>((set, get) => ({
                 settings: {
                     ...cleanData.settings,
                     // Preserve local user-specific settings that shouldn't be overridden by the file
+                    darkMode: get().settings.darkMode, // User's theme preference is local, not location data
                     hasSeenIntro: get().settings.hasSeenIntro,
                     userName: get().settings.userName || cleanData.settings.userName // Keep current user if set, else use file's
                 },

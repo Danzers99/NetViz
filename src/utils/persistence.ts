@@ -278,12 +278,20 @@ export const validateAndSanitizeConfig = (data: ConfigData): { valid: boolean; e
     // We don't fail load on network validation errors (loops etc), we just display them.
     // const validationErrors = validateNetwork(devices);
 
+    // Sanitize user-local preferences out of location settings.
+    // Legacy files may contain darkMode, userName, hasSeenIntro in settings.
+    // These are per-user preferences and should not be carried into shared location state.
+    const sanitizedSettings = { ...data.settings } || { showWarnings: true, compactWarnings: false, darkMode: false };
+    delete (sanitizedSettings as any).darkMode;
+    delete (sanitizedSettings as any).userName;
+    delete (sanitizedSettings as any).hasSeenIntro;
+
     // Return cleaned data
     const cleanedData: ConfigData = {
         ...data,
         devices,
         // Ensure other fields exist
-        settings: data.settings || { showWarnings: true, compactWarnings: false, darkMode: false },
+        settings: sanitizedSettings,
         deviceCounts: data.deviceCounts || {},
         revisions: data.revisions || []
     };
