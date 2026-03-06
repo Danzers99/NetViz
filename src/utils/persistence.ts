@@ -281,7 +281,7 @@ export const validateAndSanitizeConfig = (data: ConfigData): { valid: boolean; e
     // Sanitize user-local preferences out of location settings.
     // Legacy files may contain darkMode, userName, hasSeenIntro in settings.
     // These are per-user preferences and should not be carried into shared location state.
-    const sanitizedSettings = { ...data.settings } || { showWarnings: true, compactWarnings: false, darkMode: false };
+    const sanitizedSettings = data.settings ? { ...data.settings } : { showWarnings: true, compactWarnings: false, darkMode: false } as any;
     delete (sanitizedSettings as any).darkMode;
     delete (sanitizedSettings as any).userName;
     delete (sanitizedSettings as any).hasSeenIntro;
