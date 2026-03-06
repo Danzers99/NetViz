@@ -10,7 +10,7 @@ interface SaveOptions {
 interface SaveDialogProps {
     isOpen: boolean;
     autoSummary: string;
-    onSave: (note: string, options: SaveOptions) => void;
+    onSave: (author: string, note: string, options: SaveOptions) => void;
     onCancel: () => void;
 }
 
@@ -63,8 +63,11 @@ export const SaveDialog = ({ isOpen, autoSummary, onSave, onCancel }: SaveDialog
 
     const handleSubmit = (e: React.FormEvent) => {
         e.preventDefault();
-        if (!name.trim() || !hasValidTarget) return;
-        setUserName(name.trim());
+        const author = name.trim();
+        if (!author || !hasValidTarget) return;
+
+        // Remember the name locally for next time (UI convenience only — not the save metadata source)
+        setUserName(author);
 
         const options: SaveOptions = {
             downloadLocal,
@@ -74,7 +77,8 @@ export const SaveDialog = ({ isOpen, autoSummary, onSave, onCancel }: SaveDialog
             options.cloudSync = { name: accountName.trim(), cakeId: cakeIdInput.trim() };
         }
 
-        onSave(note.trim(), options);
+        // Author is passed explicitly as save metadata — the single canonical source
+        onSave(author, note.trim(), options);
     };
 
     const formatSyncTime = (ts: number) => {

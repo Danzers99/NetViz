@@ -120,7 +120,7 @@ interface AppState {
 
     // Accounts (Cloud Persistence)
     isSavingToAccounts: boolean;
-    saveToAccountsFromDialog: (name: string, cakeId: string) => Promise<void>;
+    saveToAccountsFromDialog: (name: string, cakeId: string, author: string) => Promise<void>;
     loadFromAccounts: (cakeId: string) => Promise<void>;
 
     // Camera
@@ -786,15 +786,12 @@ export const useAppStore = create<AppState>((set, get) => ({
     }),
 
     isSavingToAccounts: false,
-    saveToAccountsFromDialog: async (name: string, cakeId: string) => {
+    saveToAccountsFromDialog: async (name: string, cakeId: string, author: string) => {
         set({ isSavingToAccounts: true, projectInfo: { ...get().projectInfo, name, cakeId } });
         try {
             const config = get().exportConfig();
-            // Derive author from latest revision (just committed) or current user settings
-            const revisions = get().revisions;
-            const latestRevision = revisions.length > 0 ? revisions[revisions.length - 1] : null;
-            const lastEditedBy = latestRevision?.author || get().settings.userName || 'Unknown';
-            await saveAccount(cakeId, config, name, lastEditedBy);
+            // Author is passed explicitly from the save flow — same value used for revision.author
+            await saveAccount(cakeId, config, name, author);
             set({
                 projectInfo: { ...get().projectInfo, lastCloudSyncAt: Date.now() },
                 notification: { message: `Synced to cloud (CAKE ${cakeId})`, type: 'success' },

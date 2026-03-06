@@ -68,10 +68,9 @@ export const Layout = ({ children }: { children: ReactNode }) => {
         }
     };
 
-    // Commit a revision to the store (always happens on save)
-    const commitRevision = (manualNote: string) => {
-        const currentSettings = useAppStore.getState().settings;
-
+    // Commit a revision to the store (always happens on save).
+    // Author is passed explicitly from the SaveDialog — not derived from settings.
+    const commitRevision = (author: string, manualNote: string) => {
         const stats = {
             deviceCount: devices.length,
             roomCount: rooms.length,
@@ -81,7 +80,7 @@ export const Layout = ({ children }: { children: ReactNode }) => {
         const revision: Revision = {
             id: generateUUID(),
             timestamp: Date.now(),
-            author: currentSettings.userName || 'Unknown User',
+            author,
             summary: pendingAutoSummary,
             manualNote: manualNote,
             stats
@@ -195,17 +194,18 @@ export const Layout = ({ children }: { children: ReactNode }) => {
             <SaveDialog
                 isOpen={showSaveDialog}
                 autoSummary={pendingAutoSummary}
-                onSave={(note, options) => {
+                onSave={(author, note, options) => {
                     setShowSaveDialog(false);
                     setTimeout(() => {
-                        // 1. Always commit the revision to history
-                        commitRevision(note);
+                        // 1. Always commit the revision to history (author passed explicitly)
+                        commitRevision(author, note);
 
-                        // 2. Cloud sync (if requested)
+                        // 2. Cloud sync (if requested) — same author flows to cloud metadata
                         if (options?.cloudSync) {
                             useAppStore.getState().saveToAccountsFromDialog(
                                 options.cloudSync.name,
-                                options.cloudSync.cakeId
+                                options.cloudSync.cakeId,
+                                author
                             );
                         }
 
