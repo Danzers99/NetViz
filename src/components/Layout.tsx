@@ -343,6 +343,14 @@ export const Layout = ({ children }: { children: ReactNode }) => {
                         <HelpCircle size={20} />
                         <span className="hidden md:block">Help</span>
                     </button>
+                    <a
+                        href="https://heydavidmorales.com/?utm_source=netviz&utm_medium=app"
+                        target="_blank"
+                        rel="noopener"
+                        className="hidden md:block px-3 pt-2 text-[11px] text-slate-400 hover:text-orange-500 transition-colors"
+                    >
+                        Built by David Morales
+                    </a>
                 </div>
             </div>
 

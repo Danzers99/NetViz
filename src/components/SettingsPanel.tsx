@@ -259,7 +259,7 @@ export const SettingsPanel = ({ onClose }: { onClose: () => void }) => {
 
             {/* Sticky Footer */}
             <div className="p-4 border-t border-slate-100 dark:border-slate-700 text-center flex-shrink-0">
-                <p className="text-xs text-slate-400">Created by David Morales</p>
+                <p className="text-xs text-slate-400">Created by <a href="https://heydavidmorales.com/?utm_source=netviz&utm_medium=app" target="_blank" rel="noopener" className="underline decoration-slate-300 underline-offset-2 hover:text-orange-500">David Morales</a></p>
                 <p className="text-[10px] text-slate-300 dark:text-slate-600 mt-1">NetViz v{__APP_VERSION__}</p>
             </div>
         </div >
